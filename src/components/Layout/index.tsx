@@ -1,0 +1,106 @@
+import { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Layout as AntdLayout, Menu, theme } from 'antd';
+import {
+  EditOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  PictureOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import type { MenuProps } from 'antd';
+import './index.css';
+
+const { Header, Sider, Content } = AntdLayout;
+
+type MenuItem = Required<MenuProps>['items'][number];
+
+const menuItems: MenuItem[] = [
+  {
+    key: '/ai-creation',
+    icon: <EditOutlined />,
+    label: 'AI创作',
+  },
+  {
+    key: '/script-management',
+    icon: <FileTextOutlined />,
+    label: '剧本管理',
+  },
+  {
+    key: '/resource-preparation',
+    icon: <FolderOpenOutlined />,
+    label: '资源准备',
+  },
+  {
+    key: '/resource-library',
+    icon: <PictureOutlined />,
+    label: '资源库',
+  },
+  {
+    key: '/character-library',
+    icon: <UserOutlined />,
+    label: '角色库',
+  },
+  {
+    key: '/team-space',
+    icon: <TeamOutlined />,
+    label: '团队空间',
+  },
+];
+
+function Layout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const {
+    token: { colorBgContainer, borderRadiusLG },
+  } = theme.useToken();
+
+  const handleMenuClick: MenuProps['onClick'] = (e) => {
+    navigate(e.key);
+  };
+
+  // 获取当前选中的菜单项
+  const selectedKey = location.pathname.startsWith('/script-management/')
+    ? '/script-management'
+    : location.pathname;
+
+  return (
+    <AntdLayout style={{ minHeight: '100vh' }}>
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+        <div className="logo">
+          <h2>{collapsed ? 'AI' : 'AI漫剧工作台'}</h2>
+        </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          items={menuItems}
+          onClick={handleMenuClick}
+        />
+      </Sider>
+      <AntdLayout>
+        <Header style={{ padding: 0, background: colorBgContainer }}>
+          <div className="header-content">
+            <h3>AI漫剧一站式服务工作台</h3>
+          </div>
+        </Header>
+        <Content style={{ margin: '16px' }}>
+          <div
+            style={{
+              padding: 24,
+              minHeight: 360,
+              background: colorBgContainer,
+              borderRadius: borderRadiusLG,
+            }}
+          >
+            <Outlet />
+          </div>
+        </Content>
+      </AntdLayout>
+    </AntdLayout>
+  );
+}
+
+export default Layout;
