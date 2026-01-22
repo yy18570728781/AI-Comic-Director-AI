@@ -67,7 +67,7 @@ function Layout() {
     : location.pathname;
 
   return (
-    <AntdLayout style={{ minHeight: '100vh' }}>
+    <AntdLayout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
         <div className="logo">
           <h2>{collapsed ? 'AI' : 'AI漫剧工作台'}</h2>
@@ -80,17 +80,21 @@ function Layout() {
           onClick={handleMenuClick}
         />
       </Sider>
-      <AntdLayout>
-        <Header style={{ padding: 0, background: colorBgContainer }}>
+      <AntdLayout
+        style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}
+      >
+        <Header
+          style={{ padding: 0, background: colorBgContainer, flexShrink: 0 }}
+        >
           <div className="header-content">
             <h3>AI漫剧一站式服务工作台</h3>
           </div>
         </Header>
-        <Content style={{ margin: '16px' }}>
+        <Content style={{ flex: 1, overflow: 'auto', margin: '16px' }}>
           <div
             style={{
               padding: 24,
-              minHeight: 360,
+              minHeight: '100%',
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
             }}

@@ -10,7 +10,7 @@ import {
   message,
 } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
-import { generateNovel, generateScript } from '@/api/ai';
+// import { generateNovel, generateScript } from '@/api/ai';
 
 const { TextArea } = Input;
 
@@ -23,19 +23,73 @@ function AICreation() {
   const [novelResult, setNovelResult] = useState('');
   const [scriptResult, setScriptResult] = useState('');
 
-  // 生成小说
+  // 生成小说（流式）
   const handleGenerateNovel = async (values: any) => {
     setNovelLoading(true);
+    setNovelResult(''); // 清空之前的结果
+
     try {
-      const res = await generateNovel({
-        theme: values.theme,
-        outline: values.outline,
-        length: values.length || 2000,
-        provider: 'deepseek',
-      });
-      setNovelResult(res.data.novel);
-      message.success('小说生成成功');
-    } catch (error) {
+      const response = await fetch(
+        'http://localhost:7001/api/ai/novel/generate-stream',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            theme: values.theme,
+            outline: values.outline,
+            length: values.length || 2000,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('请求失败');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('无法读取响应流');
+      }
+
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+
+            if (data === '[DONE]') {
+              message.success('小说生成成功');
+              break;
+            }
+
+            try {
+              const json = JSON.parse(data);
+              if (json.content) {
+                accumulatedText += json.content;
+                setNovelResult(accumulatedText);
+              } else if (json.error) {
+                message.error(json.error);
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      message.error(error.message || '生成失败');
       console.error(error);
     } finally {
       setNovelLoading(false);
@@ -48,18 +102,72 @@ function AICreation() {
     message.success('已复制到剪贴板');
   };
 
-  // 生成剧本
+  // 生成剧本（流式）
   const handleGenerateScript = async (values: any) => {
     setScriptLoading(true);
+    setScriptResult(''); // 清空之前的结果
+
     try {
-      const res = await generateScript({
-        novel: values.novel,
-        style: values.style,
-        provider: 'deepseek',
-      });
-      setScriptResult(res.data.script);
-      message.success('剧本生成成功');
-    } catch (error) {
+      const response = await fetch(
+        'http://localhost:7001/api/ai/script/generate-stream',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            novel: values.novel,
+            style: values.style,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('请求失败');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('无法读取响应流');
+      }
+
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+
+            if (data === '[DONE]') {
+              message.success('剧本生成成功');
+              break;
+            }
+
+            try {
+              const json = JSON.parse(data);
+              if (json.content) {
+                accumulatedText += json.content;
+                setScriptResult(accumulatedText);
+              } else if (json.error) {
+                message.error(json.error);
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      message.error(error.message || '生成失败');
       console.error(error);
     } finally {
       setScriptLoading(false);
