@@ -6,7 +6,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001'
 
 const service: AxiosInstance = axios.create({
     baseURL,
-    timeout: 60000,
+    timeout: 120000, // 默认 2 分钟
     headers: {
         'Content-Type': 'application/json',
     },
