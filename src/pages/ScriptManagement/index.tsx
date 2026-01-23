@@ -42,7 +42,7 @@ function ScriptManagement() {
     setLoading(true);
     try {
       const res = await getScriptList({
-        userId: 1, // TODO: 从用户状态获取
+        // userId: 1, // 暂时不传 userId
         page,
         pageSize,
         keyword: keyword || undefined,
@@ -66,7 +66,7 @@ function ScriptManagement() {
     try {
       await createScript({
         ...values,
-        userId: 1, // TODO: 从用户状态获取
+        // userId: 1, // 暂时不传 userId，等用户系统完善后再加
       });
       message.success('剧本创建成功');
       setCreateModalVisible(false);
