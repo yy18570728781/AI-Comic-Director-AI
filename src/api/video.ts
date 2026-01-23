@@ -1,0 +1,41 @@
+import request from './request'
+
+/**
+ * 生成视频
+ */
+export function generateVideo(data: {
+    prompt: string
+    model?: string
+    duration?: number
+    referenceImage?: string
+    resolution?: string
+}) {
+    return request({
+        url: '/api/ai/video/generate',
+        method: 'post',
+        data,
+        timeout: 120000, // 2分钟超时
+    })
+}
+
+/**
+ * 查询视频生成状态
+ */
+export function getVideoStatus(taskId: string, model: string) {
+    return request({
+        url: '/api/ai/video/status',
+        method: 'post',
+        data: { taskId, model },
+    })
+}
+
+/**
+ * 批量查询视频任务状态
+ */
+export function batchGetVideoStatus(tasks: Array<{ taskId: string; shotId: number; model: string }>) {
+    return request({
+        url: '/api/ai/video/batch-status',
+        method: 'post',
+        data: { tasks },
+    })
+}
