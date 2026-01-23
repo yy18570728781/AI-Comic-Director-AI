@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -15,11 +15,11 @@ import {
   Tag,
   Empty,
   Popconfirm,
+  Image,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   ThunderboltOutlined,
-  PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   PictureOutlined,
@@ -31,8 +31,15 @@ import {
   updateShot,
   deleteShot,
 } from '@/api/script';
+import { generateImage, batchGetImageStatus } from '@/api/image';
 
 const { TextArea } = Input;
+
+// 任务状态类型
+interface ImageTask {
+  taskId: string;
+  shotId: number;
+}
 
 function ScriptDetail() {
   const { id } = useParams();
@@ -43,6 +50,11 @@ function ScriptDetail() {
   const [generateLoading, setGenerateLoading] = useState(false);
   const [editingShotId, setEditingShotId] = useState<number | null>(null);
   const [editForm] = Form.useForm();
+  const [generatingImages, setGeneratingImages] = useState<Set<number>>(
+    new Set(),
+  ); // 正在生成图片的镜头ID
+  const [imageTasks, setImageTasks] = useState<ImageTask[]>([]); // 图片生成任务列表
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 加载剧本详情
   const loadScript = async () => {
@@ -62,12 +74,106 @@ function ScriptDetail() {
     loadScript();
   }, [id]);
 
+  // 统一轮询器：批量查询所有任务状态
+  useEffect(() => {
+    if (imageTasks.length === 0) {
+      // 没有任务时清除定时器
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+      return;
+    }
+
+    const pollTasks = async () => {
+      try {
+        console.log(`🔄 批量查询 ${imageTasks.length} 个任务状态`);
+        const res = await batchGetImageStatus(imageTasks);
+
+        if (res.success && res.data) {
+          const completedTasks: number[] = [];
+          const failedTasks: number[] = [];
+
+          // 处理每个任务的结果
+          res.data.forEach((result: any) => {
+            if (result.status === 'completed') {
+              completedTasks.push(result.shotId);
+
+              // 直接更新 script 状态中的对应镜头
+              setScript((prevScript: any) => {
+                if (!prevScript) return prevScript;
+
+                const updatedShots = prevScript.shots.map((shot: any) => {
+                  if (shot.id === result.shotId) {
+                    return {
+                      ...shot,
+                      images: shot.images
+                        ? [...shot.images, result.image]
+                        : [result.image],
+                    };
+                  }
+                  return shot;
+                });
+
+                return {
+                  ...prevScript,
+                  shots: updatedShots,
+                };
+              });
+
+              message.success(`镜头 #${result.shotId} 图像生成成功！`);
+            } else if (
+              result.status === 'failed' ||
+              result.status === 'error'
+            ) {
+              failedTasks.push(result.shotId);
+              message.error(
+                `镜头 #${result.shotId} 图像生成失败: ${result.error || '未知错误'}`,
+              );
+            }
+          });
+
+          // 移除已完成或失败的任务
+          if (completedTasks.length > 0 || failedTasks.length > 0) {
+            const finishedShotIds = [...completedTasks, ...failedTasks];
+
+            setImageTasks((prev) =>
+              prev.filter((task) => !finishedShotIds.includes(task.shotId)),
+            );
+
+            setGeneratingImages((prev) => {
+              const newSet = new Set(prev);
+              finishedShotIds.forEach((shotId) => newSet.delete(shotId));
+              return newSet;
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error('批量查询任务失败:', error);
+      }
+
+      // 继续轮询（如果还有任务）
+      if (imageTasks.length > 0) {
+        pollingTimerRef.current = setTimeout(pollTasks, 3500);
+      }
+    };
+
+    // 启动轮询
+    pollingTimerRef.current = setTimeout(pollTasks, 3500);
+
+    // 清理函数
+    return () => {
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+      }
+    };
+  }, [imageTasks]);
+
   // 生成分镜脚本
   const handleGenerateStoryboard = async () => {
     setGenerateLoading(true);
     try {
       await generateStoryboard(parseInt(id!), {
-        provider: 'deepseek',
         shotCount: 30,
       });
       message.success('分镜脚本生成成功');
@@ -122,6 +228,57 @@ function ScriptDetail() {
       loadScript();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  // 生成图像（优化版）
+  const handleGenerateImage = async (shot: any) => {
+    const shotId = shot.id;
+
+    // 防止重复生成
+    if (generatingImages.has(shotId)) {
+      message.warning('该镜头正在生成图像，请稍候');
+      return;
+    }
+
+    setGeneratingImages((prev) => new Set(prev).add(shotId));
+
+    try {
+      message.loading({
+        content: '正在生成图像...',
+        key: `gen-${shotId}`,
+        duration: 2,
+      });
+
+      // 调用生成图像 API
+      const res = await generateImage({
+        prompt: shot.imagePrompt || shot.visualDescription,
+        model: 'wanx',
+        width: 1024,
+        height: 1024,
+      });
+
+      if (res.success && res.data.taskId) {
+        // 添加到任务列表
+        setImageTasks((prev) => [...prev, { taskId: res.data.taskId, shotId }]);
+
+        message.info({
+          content: '图像生成任务已提交，正在处理中...',
+          key: `gen-${shotId}`,
+        });
+      } else {
+        throw new Error('任务创建失败');
+      }
+    } catch (error: any) {
+      message.error({
+        content: error.message || '生成失败',
+        key: `gen-${shotId}`,
+      });
+      setGeneratingImages((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(shotId);
+        return newSet;
+      });
     }
   };
 
@@ -193,7 +350,9 @@ function ScriptDetail() {
                       <Button
                         size="small"
                         icon={<PictureOutlined />}
-                        onClick={() => message.info('图像生成功能开发中')}
+                        onClick={() => handleGenerateImage(shot)}
+                        loading={generatingImages.has(shot.id)}
+                        disabled={!shot.imagePrompt && !shot.visualDescription}
                       >
                         生成图像
                       </Button>
@@ -245,6 +404,23 @@ function ScriptDetail() {
                       <strong>画面描述：</strong>
                       <div style={{ marginTop: 4, color: '#666' }}>
                         {shot.visualDescription}
+                      </div>
+                    </div>
+                  )}
+                  {shot.images && shot.images.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <strong>生成的图像：</strong>
+                      <div style={{ marginTop: 8 }}>
+                        <Image.PreviewGroup>
+                          {shot.images.map((img: any, idx: number) => (
+                            <Image
+                              key={idx}
+                              width={200}
+                              src={img.url}
+                              style={{ marginRight: 8, marginBottom: 8 }}
+                            />
+                          ))}
+                        </Image.PreviewGroup>
                       </div>
                     </div>
                   )}
