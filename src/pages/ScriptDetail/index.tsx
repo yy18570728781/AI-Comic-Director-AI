@@ -32,6 +32,7 @@ import {
   deleteShot,
 } from '@/api/script';
 import { generateImage, batchGetImageStatus } from '@/api/image';
+import { generateVideo, batchGetVideoStatus } from '@/api/video';
 
 const { TextArea } = Input;
 
@@ -39,6 +40,12 @@ const { TextArea } = Input;
 interface ImageTask {
   taskId: string;
   shotId: number;
+}
+
+interface VideoTask {
+  taskId: string;
+  shotId: number;
+  model: string;
 }
 
 function ScriptDetail() {
@@ -53,8 +60,13 @@ function ScriptDetail() {
   const [generatingImages, setGeneratingImages] = useState<Set<number>>(
     new Set(),
   ); // 正在生成图片的镜头ID
+  const [generatingVideos, setGeneratingVideos] = useState<Set<number>>(
+    new Set(),
+  ); // 正在生成视频的镜头ID
   const [imageTasks, setImageTasks] = useState<ImageTask[]>([]); // 图片生成任务列表
+  const [videoTasks, setVideoTasks] = useState<VideoTask[]>([]); // 视频生成任务列表
   const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const videoPollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 加载剧本详情
   const loadScript = async () => {
@@ -169,6 +181,99 @@ function ScriptDetail() {
     };
   }, [imageTasks]);
 
+  // 视频任务轮询器
+  useEffect(() => {
+    if (videoTasks.length === 0) {
+      if (videoPollingTimerRef.current) {
+        clearTimeout(videoPollingTimerRef.current);
+        videoPollingTimerRef.current = null;
+      }
+      return;
+    }
+
+    const pollVideoTasks = async () => {
+      try {
+        console.log(`🔄 批量查询 ${videoTasks.length} 个视频任务状态`);
+        const res = await batchGetVideoStatus(videoTasks);
+
+        if (res.success && res.data) {
+          const completedTasks: number[] = [];
+          const failedTasks: number[] = [];
+
+          res.data.forEach((result: any) => {
+            if (result.status === 'completed') {
+              completedTasks.push(result.shotId);
+
+              // 直接更新 script 状态中的对应镜头
+              setScript((prevScript: any) => {
+                if (!prevScript) return prevScript;
+
+                const updatedShots = prevScript.shots.map((shot: any) => {
+                  if (shot.id === result.shotId) {
+                    return {
+                      ...shot,
+                      videos: shot.videos
+                        ? [...shot.videos, result.video]
+                        : [result.video],
+                    };
+                  }
+                  return shot;
+                });
+
+                return {
+                  ...prevScript,
+                  shots: updatedShots,
+                };
+              });
+
+              message.success(`镜头 #${result.shotId} 视频生成成功！`);
+            } else if (
+              result.status === 'failed' ||
+              result.status === 'error'
+            ) {
+              failedTasks.push(result.shotId);
+              message.error(
+                `镜头 #${result.shotId} 视频生成失败: ${result.error || '未知错误'}`,
+              );
+            }
+          });
+
+          // 移除已完成或失败的任务
+          if (completedTasks.length > 0 || failedTasks.length > 0) {
+            const finishedShotIds = [...completedTasks, ...failedTasks];
+
+            setVideoTasks((prev) =>
+              prev.filter((task) => !finishedShotIds.includes(task.shotId)),
+            );
+
+            setGeneratingVideos((prev) => {
+              const newSet = new Set(prev);
+              finishedShotIds.forEach((shotId) => newSet.delete(shotId));
+              return newSet;
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error('批量查询视频任务失败:', error);
+      }
+
+      // 继续轮询（视频生成较慢，5秒轮询一次）
+      if (videoTasks.length > 0) {
+        videoPollingTimerRef.current = setTimeout(pollVideoTasks, 5000);
+      }
+    };
+
+    // 启动轮询
+    videoPollingTimerRef.current = setTimeout(pollVideoTasks, 5000);
+
+    // 清理函数
+    return () => {
+      if (videoPollingTimerRef.current) {
+        clearTimeout(videoPollingTimerRef.current);
+      }
+    };
+  }, [videoTasks]);
+
   // 生成分镜脚本
   const handleGenerateStoryboard = async () => {
     setGenerateLoading(true);
@@ -235,6 +340,10 @@ function ScriptDetail() {
   const handleGenerateImage = async (shot: any) => {
     const shotId = shot.id;
 
+    console.log('🎨 前端：准备生成图片');
+    console.log('📋 shot 对象:', shot);
+    console.log('🆔 shotId:', shotId);
+
     // 防止重复生成
     if (generatingImages.has(shotId)) {
       message.warning('该镜头正在生成图像，请稍候');
@@ -260,6 +369,10 @@ function ScriptDetail() {
 
       if (res.success && res.data.taskId) {
         // 添加到任务列表
+        console.log('✅ 前端：添加图片任务到列表', {
+          taskId: res.data.taskId,
+          shotId,
+        });
         setImageTasks((prev) => [...prev, { taskId: res.data.taskId, shotId }]);
 
         message.info({
@@ -275,6 +388,77 @@ function ScriptDetail() {
         key: `gen-${shotId}`,
       });
       setGeneratingImages((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(shotId);
+        return newSet;
+      });
+    }
+  };
+
+  // 生成视频（优化版）
+  const handleGenerateVideo = async (shot: any) => {
+    const shotId = shot.id;
+
+    console.log('🎬 前端：准备生成视频');
+    console.log('📋 shot 对象:', shot);
+    console.log('🆔 shotId:', shotId);
+
+    // 防止重复生成
+    if (generatingVideos.has(shotId)) {
+      message.warning('该镜头正在生成视频，请稍候');
+      return;
+    }
+
+    // 检查是否有图片
+    if (!shot.images || shot.images.length === 0) {
+      message.warning('请先生成图像，再生成视频');
+      return;
+    }
+
+    setGeneratingVideos((prev) => new Set(prev).add(shotId));
+
+    try {
+      message.loading({
+        content: '正在生成视频...',
+        key: `gen-video-${shotId}`,
+        duration: 2,
+      });
+
+      // 使用最后一张图片作为参考图
+      const referenceImage = shot.images[shot.images.length - 1].url;
+
+      // 调用生成视频 API
+      const res = await generateVideo({
+        prompt: shot.videoPrompt || shot.visualDescription || '',
+        model: 'wan2.6-i2v-flash', // 使用快速模式
+        referenceImage,
+      });
+
+      if (res.success && res.data.taskId) {
+        // 添加到任务列表
+        console.log('✅ 前端：添加视频任务到列表', {
+          taskId: res.data.taskId,
+          shotId,
+          model: 'wan2.6-i2v-flash',
+        });
+        setVideoTasks((prev) => [
+          ...prev,
+          { taskId: res.data.taskId, shotId, model: 'wan2.6-i2v-flash' },
+        ]);
+
+        message.info({
+          content: '视频生成任务已提交，正在处理中（预计1-2分钟）...',
+          key: `gen-video-${shotId}`,
+        });
+      } else {
+        throw new Error('任务创建失败');
+      }
+    } catch (error: any) {
+      message.error({
+        content: error.message || '生成失败',
+        key: `gen-video-${shotId}`,
+      });
+      setGeneratingVideos((prev) => {
         const newSet = new Set(prev);
         newSet.delete(shotId);
         return newSet;
@@ -359,7 +543,9 @@ function ScriptDetail() {
                       <Button
                         size="small"
                         icon={<VideoCameraOutlined />}
-                        onClick={() => message.info('视频生成功能开发中')}
+                        onClick={() => handleGenerateVideo(shot)}
+                        loading={generatingVideos.has(shot.id)}
+                        disabled={!shot.images || shot.images.length === 0}
                       >
                         生成视频
                       </Button>
@@ -421,6 +607,24 @@ function ScriptDetail() {
                             />
                           ))}
                         </Image.PreviewGroup>
+                      </div>
+                    </div>
+                  )}
+                  {shot.videos && shot.videos.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <strong>生成的视频：</strong>
+                      <div style={{ marginTop: 8 }}>
+                        {shot.videos.map((video: any, idx: number) => (
+                          <video
+                            key={idx}
+                            width={300}
+                            controls
+                            style={{ marginRight: 8, marginBottom: 8 }}
+                          >
+                            <source src={video.url} type="video/mp4" />
+                            您的浏览器不支持视频播放
+                          </video>
+                        ))}
                       </div>
                     </div>
                   )}
