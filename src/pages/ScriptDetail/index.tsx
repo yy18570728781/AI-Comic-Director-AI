@@ -364,12 +364,13 @@ function ScriptDetail() {
   };
 
   // 生成图像（简化版 - 单张图片）
-  const handleGenerateImage = async (shot: any) => {
+  const handleGenerateImage = async (shot: any, config?: any) => {
     const shotId = shot.id;
 
     console.log('🎨 前端：准备生成图片');
     console.log('📋 shot 对象:', shot);
     console.log('🆔 shotId:', shotId);
+    console.log('⚙️ 配置:', config);
 
     // 防止重复生成
     if (generatingImages.has(shotId)) {
@@ -386,12 +387,32 @@ function ScriptDetail() {
         duration: 2,
       });
 
+      // 根据图像比例计算宽高（通义万相支持的尺寸）
+      let width = 1024;
+      let height = 1024;
+
+      if (config?.aspectRatio) {
+        const ratioMap: Record<string, [number, number]> = {
+          '1:1': [1024, 1024], // 正方形
+          '16:9': [1280, 720], // 横屏
+          '9:16': [720, 1280], // 竖屏
+          '4:3': [1024, 1024], // 标准横屏（用正方形代替，通义万相不支持4:3）
+          '3:4': [768, 1152], // 标准竖屏（2:3）
+          '21:9': [1280, 720], // 超宽屏（用16:9代替）
+        };
+        [width, height] = ratioMap[config.aspectRatio] || [1024, 1024];
+      }
+
+      // 使用配置中的图像提示词（通义万相支持中文）
+      const prompt = config?.imagePrompt || shot.imagePrompt;
+
       // 调用生成图像 API
       const res = await generateImage({
-        prompt: shot.imagePrompt || shot.visualDescription,
+        prompt,
         model: 'wanx',
-        width: 1024,
-        height: 1024,
+        width,
+        height,
+        referenceImages: config?.referenceImages || [],
       });
 
       if (res.success && res.data.taskId) {

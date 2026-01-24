@@ -5,6 +5,8 @@ import {
   PictureOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import { useState } from 'react';
+import ImageGenerateModal from './ImageGenerateModal';
 
 interface ShotImage {
   id: number;
@@ -32,7 +34,7 @@ interface ImagesTabProps {
   shots: Shot[];
   generatingImages: Set<number>;
   generatingVideos: Set<number>;
-  onGenerateImage: (shot: Shot) => void;
+  onGenerateImage: (shot: Shot, config: any) => void;
   onGenerateVideo: (shot: Shot) => void;
   onEditShot: (shot: Shot) => void;
   onDeleteShot: (shotId: number) => void;
@@ -50,6 +52,28 @@ export default function ImagesTab({
   onEditShot,
   onDeleteShot,
 }: ImagesTabProps) {
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [currentShot, setCurrentShot] = useState<Shot | null>(null);
+
+  // 打开图像生成弹窗
+  const handleOpenImageModal = (shot: Shot) => {
+    setCurrentShot(shot);
+    setImageModalVisible(true);
+  };
+
+  // 关闭弹窗
+  const handleCloseImageModal = () => {
+    setImageModalVisible(false);
+    setCurrentShot(null);
+  };
+
+  // 提交图像生成
+  const handleSubmitImageGenerate = (config: any) => {
+    if (currentShot) {
+      onGenerateImage(currentShot, config);
+      handleCloseImageModal();
+    }
+  };
   if (!shots || shots.length === 0) {
     return (
       <Card>
@@ -61,7 +85,7 @@ export default function ImagesTab({
     );
   }
 
-  return (
+  const content = (
     <div
       style={{
         display: 'grid',
@@ -186,69 +210,79 @@ export default function ImagesTab({
             style={{
               padding: '12px 16px',
               borderTop: '1px solid #f0f0f0',
-              display: 'flex',
-              gap: '8px',
             }}
           >
-            <Button
-              style={{ flex: 1 }}
-              icon={<EditOutlined />}
-              onClick={() => onEditShot(shot)}
-            >
-              编辑
-            </Button>
-            <Button
-              style={{ flex: 1 }}
-              type="primary"
-              icon={<VideoCameraOutlined />}
-              onClick={() => onGenerateVideo(shot)}
-              loading={generatingVideos.has(shot.id)}
-              disabled={!shot.images || shot.images.length === 0}
-            >
-              生成视频
-            </Button>
-          </div>
-
-          {/* 底部工具栏 */}
-          <div
-            style={{
-              padding: '8px 16px',
-              borderTop: '1px solid #f0f0f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Space>
+            {/* 主要操作 - 两个大按钮 */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <Button
-                size="small"
-                type="text"
+                style={{ flex: 1 }}
+                type="primary"
                 icon={<PictureOutlined />}
-                onClick={() => onGenerateImage(shot)}
+                onClick={() => handleOpenImageModal(shot)}
                 loading={generatingImages.has(shot.id)}
               >
                 生成图像
               </Button>
-              {shot.images && shot.images.length > 1 && (
-                <Button size="small" type="text" icon={<PictureOutlined />}>
-                  +{shot.images.length - 1}
-                </Button>
-              )}
-            </Space>
-            <Popconfirm
-              title="确定删除这个分镜吗？"
-              onConfirm={() => onDeleteShot(shot.id)}
-            >
               <Button
-                size="small"
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
+                style={{ flex: 1 }}
+                icon={<VideoCameraOutlined />}
+                onClick={() => onGenerateVideo(shot)}
+                loading={generatingVideos.has(shot.id)}
+                disabled={!shot.images || shot.images.length === 0}
+              >
+                生成视频
+              </Button>
+            </div>
+
+            {/* 次要操作 - 小按钮 */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Space size="small">
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => onEditShot(shot)}
+                >
+                  编辑
+                </Button>
+                {shot.images && shot.images.length > 1 && (
+                  <Button size="small" icon={<PictureOutlined />}>
+                    {shot.images.length} 张
+                  </Button>
+                )}
+              </Space>
+              <Popconfirm
+                title="确定删除这个分镜吗？"
+                onConfirm={() => onDeleteShot(shot.id)}
+              >
+                <Button size="small" danger icon={<DeleteOutlined />}>
+                  删除
+                </Button>
+              </Popconfirm>
+            </div>
           </div>
         </Card>
       ))}
     </div>
+  );
+
+  return (
+    <>
+      {content}
+
+      {/* 图像生成配置弹窗 */}
+      <ImageGenerateModal
+        visible={imageModalVisible}
+        shot={currentShot}
+        loading={currentShot ? generatingImages.has(currentShot.id) : false}
+        onCancel={handleCloseImageModal}
+        onSubmit={handleSubmitImageGenerate}
+      />
+    </>
   );
 }
