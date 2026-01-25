@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
   Button,
@@ -15,23 +14,25 @@ import {
   Tag,
   Empty,
 } from 'antd';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined, ThunderboltOutlined, MergeCellsOutlined } from '@ant-design/icons';
+
+import { generateImage, batchGetImageStatus } from '@/api/image';
+import { saveToLibrary } from '@/api/resource';
 import {
   getScriptDetail,
   generateStoryboard,
   updateShot,
   deleteShot,
 } from '@/api/script';
-import { generateImage, batchGetImageStatus } from '@/api/image';
 import { generateVideo, batchGetVideoStatus } from '@/api/video';
-import { saveToLibrary } from '@/api/resource';
 
 // 导入标签页组件
+import ImageBlendModal from './components/ImageBlendModal';
+import ImagesTab from './components/ImagesTab';
 import ScriptTab from './components/ScriptTab';
 import ShotsTab from './components/ShotsTab';
-import ImagesTab from './components/ImagesTab';
 import VideosTab from './components/VideosTab';
-import ImageBlendModal from './components/ImageBlendModal';
 
 const { TextArea } = Input;
 
@@ -113,7 +114,7 @@ function ScriptDetail() {
             if (result.status === 'completed') {
               // 查找对应的任务信息
               const task = imageTasks.find(t => t.taskId === result.taskId);
-              
+
               // 如果是融图任务，保存到资源库
               if (task && (task as any).isBlend && result.image) {
                 saveToLibrary({
@@ -539,8 +540,8 @@ function ScriptDetail() {
           // 通义万相是异步的，需要轮询
           setImageTasks((prev) => [
             ...prev,
-            { 
-              taskId: res.data.taskId, 
+            {
+              taskId: res.data.taskId,
               shotId: 0, // shotId 为 0 表示不关联分镜
               isBlend: true, // 标记为融图任务
               blendConfig: config, // 保存配置以便后续保存到资源库
@@ -554,7 +555,7 @@ function ScriptDetail() {
           // 同步模型直接显示结果并保存到资源库
           const imageUrl = res.data.images[0].url;
           await saveBlendResultToLibrary(imageUrl);
-          
+
           Modal.success({
             title: '融图成功',
             content: (
@@ -684,14 +685,14 @@ function ScriptDetail() {
             (total: number, shot: any) => total + (shot.images?.length || 0),
             0,
           ) > 0 && (
-            <Tag color="blue">
-              {script.shots.reduce(
-                (total: number, shot: any) =>
-                  total + (shot.images?.length || 0),
-                0,
-              )}
-            </Tag>
-          )}
+              <Tag color="blue">
+                {script.shots.reduce(
+                  (total: number, shot: any) =>
+                    total + (shot.images?.length || 0),
+                  0,
+                )}
+              </Tag>
+            )}
         </span>
       ),
     },
@@ -704,14 +705,14 @@ function ScriptDetail() {
             (total: number, shot: any) => total + (shot.videos?.length || 0),
             0,
           ) > 0 && (
-            <Tag color="blue">
-              {script.shots.reduce(
-                (total: number, shot: any) =>
-                  total + (shot.videos?.length || 0),
-                0,
-              )}
-            </Tag>
-          )}
+              <Tag color="blue">
+                {script.shots.reduce(
+                  (total: number, shot: any) =>
+                    total + (shot.videos?.length || 0),
+                  0,
+                )}
+              </Tag>
+            )}
         </span>
       ),
     },
@@ -815,12 +816,14 @@ function ScriptDetail() {
             alignItems: 'center',
           }}
         >
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={tabItems}
-            style={{ marginBottom: 0, flex: 1 }}
-          />
+          <div>
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={tabItems}
+              style={{ marginBottom: 0, flex: 1 }}
+            />
+          </div>
           <Button
             type="primary"
             icon={<MergeCellsOutlined />}
