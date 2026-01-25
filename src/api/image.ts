@@ -68,3 +68,20 @@ export function optimizeImagePrompt(prompt: string) {
         timeout: 30000,
     })
 }
+
+/**
+ * 多图融合
+ */
+export function blendImages(data: {
+    model: string
+    prompt?: string
+    referenceImages: string[]
+    aspectRatio?: string
+}) {
+    return request({
+        url: '/api/ai/image/blend',
+        method: 'post',
+        data,
+        timeout: 120000, // 2分钟超时
+    })
+}
