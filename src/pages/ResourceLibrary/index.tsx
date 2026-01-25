@@ -1,10 +1,404 @@
-function ResourceLibrary() {
+import { useState, useEffect } from 'react';
+import {
+  Card,
+  Radio,
+  Input,
+  Empty,
+  Image,
+  Tag,
+  Pagination,
+  Spin,
+  message,
+  Popconfirm,
+  Button,
+  Space,
+  Typography,
+} from 'antd';
+import {
+  SearchOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
+
+import { getResourceList, deleteResource } from '@/api/resource';
+import { useUserStore } from '@/stores/useUserStore';
+
+const { Title } = Typography;
+
+/**
+ * 资源库页面
+ * 展示和管理所有资源（角色、场景、道具、融图）
+ */
+export default function ResourceLibrary() {
+  const { user } = useUserStore();
+  const [resourceType, setResourceType] = useState<
+    'character' | 'scene' | 'prop' | 'blend' | 'all'
+  >('all');
+  const [scope, setScope] = useState<'all' | 'mine'>('all');
+  const [keyword, setKeyword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resources, setResources] = useState<any[]>([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 24,
+    total: 0,
+  });
+
+  // 获取资源列表
+  const fetchResources = async (page = 1) => {
+    setLoading(true);
+    try {
+      const res = await getResourceList({
+        type: resourceType === 'all' ? undefined : resourceType,
+        userId: scope === 'mine' ? user?.id : undefined,
+        keyword: keyword || undefined,
+        page,
+        pageSize: pagination.pageSize,
+      });
+
+      if (res.success && res.data) {
+        setResources(res.data.list || []);
+        setPagination({
+          ...pagination,
+          current: page,
+          total: res.data.total || 0,
+        });
+      } else {
+        message.error(res.message || '获取资源列表失败');
+      }
+    } catch (error: any) {
+      console.error('获取资源列表失败:', error);
+      message.error('获取资源列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 当筛选条件变化时重新获取数据
+  useEffect(() => {
+    fetchResources(1);
+  }, [resourceType, scope]);
+
+  // 搜索防抖
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pagination.current === 1) {
+        fetchResources(1);
+      } else {
+        setPagination({ ...pagination, current: 1 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
+  // 删除资源
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await deleteResource(id);
+      if (res.success) {
+        message.success('删除成功');
+        fetchResources(pagination.current);
+      } else {
+        message.error(res.message || '删除失败');
+      }
+    } catch (error: any) {
+      console.error('删除资源失败:', error);
+      message.error('删除失败');
+    }
+  };
+
+  // 获取资源的显示图片
+  const getResourceImage = (resource: any): string | null => {
+    // 优先使用 images 中的最终选择图片
+    if (resource.images && resource.images.length > 0) {
+      const finalImage = resource.images.find((img: any) => img.isFinal);
+      if (finalImage) return finalImage.url;
+      return resource.images[0].url;
+    }
+    // 其次使用 referenceImages
+    if (resource.referenceImages && resource.referenceImages.length > 0) {
+      return resource.referenceImages[0];
+    }
+    return null;
+  };
+
+  // 获取资源类型标签颜色
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      character: 'blue',
+      scene: 'green',
+      prop: 'orange',
+      blend: 'purple',
+    };
+    return colors[type] || 'default';
+  };
+
+  // 获取资源类型中文名
+  const getTypeName = (type: string) => {
+    const names: Record<string, string> = {
+      character: '角色',
+      scene: '场景',
+      prop: '道具',
+      blend: '融图',
+    };
+    return names[type] || type;
+  };
+
   return (
-    <div>
-      <h2>资源库</h2>
-      <p>资源库功能开发中...</p>
+    <div style={{ padding: '24px', background: '#f5f5f5', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        {/* 页面标题 */}
+        <div style={{ marginBottom: 24 }}>
+          <Title level={4} style={{ margin: 0 }}>
+            资源库
+          </Title>
+          <div style={{ color: '#999', marginTop: 8 }}>
+            管理和浏览所有资源（角色、场景、道具、融图）
+          </div>
+        </div>
+
+        {/* 筛选条件 */}
+        <Card style={{ marginBottom: 24 }}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ marginRight: 8, fontWeight: 500 }}>资源类型：</span>
+                <Radio.Group
+                  value={resourceType}
+                  onChange={(e) => setResourceType(e.target.value)}
+                  size="large"
+                >
+                  <Radio.Button value="all">全部</Radio.Button>
+                  <Radio.Button value="character">角色</Radio.Button>
+                  <Radio.Button value="scene">场景</Radio.Button>
+                  <Radio.Button value="prop">道具</Radio.Button>
+                  <Radio.Button value="blend">融图</Radio.Button>
+                </Radio.Group>
+              </div>
+              <div>
+                <span style={{ marginRight: 8, fontWeight: 500 }}>范围：</span>
+                <Radio.Group
+                  value={scope}
+                  onChange={(e) => setScope(e.target.value)}
+                  size="large"
+                >
+                  <Radio.Button value="all">全部</Radio.Button>
+                  <Radio.Button value="mine">我的</Radio.Button>
+                </Radio.Group>
+              </div>
+            </div>
+            <div>
+              <Input
+                placeholder="搜索资源名称或描述..."
+                prefix={<SearchOutlined />}
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                allowClear
+                size="large"
+                style={{ maxWidth: 400 }}
+              />
+            </div>
+          </Space>
+        </Card>
+
+        {/* 资源列表 */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <Spin size="large" tip="加载中..." />
+          </div>
+        ) : resources.length === 0 ? (
+          <Card>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                keyword
+                  ? '没有找到匹配的资源'
+                  : resourceType === 'all'
+                    ? '暂无资源'
+                    : `暂无${getTypeName(resourceType)}资源`
+              }
+              style={{ padding: '60px 0' }}
+            >
+              <div style={{ color: '#999', fontSize: 14 }}>
+                {keyword
+                  ? '尝试调整搜索关键词'
+                  : '请先创建资源并上传参考图'}
+              </div>
+            </Empty>
+          </Card>
+        ) : (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 20,
+                marginBottom: 24,
+              }}
+            >
+              {resources.map((resource) => {
+                const imageUrl = getResourceImage(resource);
+                if (!imageUrl) return null;
+
+                return (
+                  <Card
+                    key={resource.id}
+                    hoverable
+                    style={{
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}
+                    cover={
+                      <div style={{ position: 'relative', paddingTop: '100%' }}>
+                        <Image
+                          src={imageUrl}
+                          alt={resource.name}
+                          preview={{
+                            mask: (
+                              <div>
+                                <div style={{ color: '#fff', fontSize: 14 }}>
+                                  {resource.name}
+                                </div>
+                              </div>
+                            ),
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          placeholder={
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                background: '#f0f0f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Spin size="small" />
+                            </div>
+                          }
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                          }}
+                        >
+                          <Tag color={getTypeColor(resource.type)}>
+                            {getTypeName(resource.type)}
+                          </Tag>
+                        </div>
+                        {scope === 'mine' && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                            }}
+                          >
+                            <Popconfirm
+                              title="确定要删除这个资源吗？"
+                              onConfirm={() => handleDelete(resource.id)}
+                              okText="确定"
+                              cancelText="取消"
+                            >
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                size="small"
+                                style={{
+                                  background: 'rgba(255,255,255,0.9)',
+                                }}
+                              />
+                            </Popconfirm>
+                          </div>
+                        )}
+                      </div>
+                    }
+                  >
+                    <Card.Meta
+                      title={
+                        <div
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {resource.name}
+                        </div>
+                      }
+                      description={
+                        <div>
+                          {resource.description && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: '#999',
+                                marginTop: 4,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {resource.description}
+                            </div>
+                          )}
+                          {resource.tags && resource.tags.length > 0 && (
+                            <div style={{ marginTop: 8, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {resource.tags.slice(0, 3).map((tag: string, index: number) => (
+                                <Tag key={index} style={{ margin: 0, fontSize: 11 }}>
+                                  {tag}
+                                </Tag>
+                              ))}
+                              {resource.tags.length > 3 && (
+                                <Tag style={{ margin: 0, fontSize: 11 }}>
+                                  +{resource.tags.length - 3}
+                                </Tag>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      }
+                    />
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* 分页 */}
+            {pagination.total > pagination.pageSize && (
+              <div style={{ textAlign: 'center', marginTop: 24 }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={(page) => fetchResources(page)}
+                  showSizeChanger
+                  showTotal={(total) => `共 ${total} 项`}
+                  pageSizeOptions={['12', '24', '48', '96']}
+                  onShowSizeChange={(current, size) => {
+                    setPagination({ ...pagination, pageSize: size, current: 1 });
+                    fetchResources(1);
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
-
-export default ResourceLibrary;
