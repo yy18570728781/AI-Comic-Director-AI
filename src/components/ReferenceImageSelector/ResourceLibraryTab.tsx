@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Empty, Checkbox, Image, Spin, Radio, Input, Tag, Pagination, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { useState, useEffect } from 'react';
+
 import { getResourceList } from '@/api/resource';
 
 interface ResourceLibraryTabProps {
@@ -40,13 +41,13 @@ export default function ResourceLibraryTab({
     try {
       const res = await getResourceList({
         type: resourceType,
-        scriptId: scope === 'script' ? scriptId : null,
+        ...(scope === 'script' && scriptId ? { scriptId } : {}),
         keyword: keyword || undefined,
         page,
         pageSize: pagination.pageSize,
       });
 
-      if (res.success && res.data) {
+      if (res && res.data) {
         setResources(res.data.list || []);
         setPagination({
           ...pagination,
@@ -105,7 +106,7 @@ export default function ResourceLibraryTab({
   // 获取资源的显示图片
   const getResourceImage = (resource: any): string | null => {
     // 使用 images 数组的第一个图片（后端已确保只有一个）
-    if (resource.images && resource.images.length > 0) {
+    if (resource.images && resource.images.length > 0 && resource.images[0]?.url) {
       return resource.images[0].url;
     }
     // 其次使用 referenceImages（参考图）
@@ -210,7 +211,45 @@ export default function ResourceLibraryTab({
           >
             {resources.map((resource) => {
               const imageUrl = getResourceImage(resource);
-              if (!imageUrl) return null;
+
+              // 如果没有图片，显示占位符
+              if (!imageUrl) {
+                return (
+                  <div
+                    key={resource.id}
+                    style={{
+                      position: 'relative',
+                      cursor: 'pointer',
+                      border: '2px solid #e8e8e8',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      background: '#f0f0f0',
+                      height: 160,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#999',
+                      fontSize: 12,
+                    }}
+                  >
+                    <div style={{ textAlign: 'center' }}>
+                      <div>暂无图片</div>
+                      <div style={{ marginTop: 4, fontSize: 11 }}>{resource.name}</div>
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        left: 8,
+                      }}
+                    >
+                      <Tag color={getTypeColor(resource.type)}>
+                        {getTypeName(resource.type)}
+                      </Tag>
+                    </div>
+                  </div>
+                );
+              }
 
               const isSelected = selectedImages.includes(imageUrl);
 
