@@ -1,14 +1,18 @@
 import { useState } from 'react';
+import { Layout as AntdLayout, Menu, theme, Button, Space } from 'antd';
+import type { MenuProps } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout as AntdLayout, Menu, theme } from 'antd';
 import {
   EditOutlined,
   FileTextOutlined,
   PictureOutlined,
   TeamOutlined,
   UserOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
+
+import ModelSettingsModal from '@/components/ModelSettingsModal';
+
 import './index.css';
 
 const { Header, Sider, Content } = AntdLayout;
@@ -47,6 +51,7 @@ function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [modelModalVisible, setModelModalVisible] = useState(false);
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -82,6 +87,14 @@ function Layout() {
         >
           <div className="header-content">
             <h3>AI漫剧一站式服务工作台</h3>
+            <Space>
+              <Button
+                icon={<SettingOutlined />}
+                onClick={() => setModelModalVisible(true)}
+              >
+                模型设置
+              </Button>
+            </Space>
           </div>
         </Header>
         <Content style={{ flex: 1, overflow: 'auto', margin: '16px' }}>
@@ -96,6 +109,12 @@ function Layout() {
             <Outlet />
           </div>
         </Content>
+
+        {/* 模型设置弹窗 */}
+        <ModelSettingsModal
+          open={modelModalVisible}
+          onClose={() => setModelModalVisible(false)}
+        />
       </AntdLayout>
     </AntdLayout>
   );
