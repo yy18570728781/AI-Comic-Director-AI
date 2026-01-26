@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Space, Tag, Empty, Popconfirm, Image, Modal } from 'antd';
+import { Card, Button, Space, Tag, Empty, Popconfirm, Image, Modal, message } from 'antd';
 import {
   ThunderboltOutlined,
   EditOutlined,
@@ -171,8 +171,23 @@ export default function ShotsTab({
             {/* 已生成的图片列表 */}
             {shot.images && shot.images.length > 0 && (
               <div style={{ marginTop: 12, marginBottom: 12 }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
-                  已生成图片 ({shot.images.length})
+                <div
+                  style={{
+                    background: '#fffbe6',
+                    border: '1px solid #ffe58f',
+                    borderRadius: 4,
+                    padding: '8px',
+                    marginBottom: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: 'fit-content',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ color: '#d48806', fontSize: 14 }}>💡</span>
+                  <span style={{ color: '#d48806', fontSize: 12 }}>
+                    点击图片可 <strong>设置首帧 / 设置尾帧 / 删除</strong>
+                  </span>
                 </div>
                 <div
                   style={{
