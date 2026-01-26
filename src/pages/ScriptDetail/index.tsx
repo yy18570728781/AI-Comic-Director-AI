@@ -500,12 +500,10 @@ function ScriptDetail() {
             shots={script.shots || []}
             generateLoading={generateLoading}
             generatingImages={generatingImages}
-            generatingVideos={generatingVideos}
             onGenerateStoryboard={handleGenerateStoryboard}
             onEditShot={handleEditShot}
             onDeleteShot={handleDeleteShot}
             onGenerateImage={handleGenerateImage}
-            onGenerateVideo={handleGenerateVideo}
           />
         );
       case 'images':

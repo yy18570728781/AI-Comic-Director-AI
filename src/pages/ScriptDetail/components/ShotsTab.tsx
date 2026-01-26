@@ -5,7 +5,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   PictureOutlined,
-  VideoCameraOutlined,
 } from '@ant-design/icons';
 
 import ImageGenerateModal from './ImageGenerateModal';
@@ -39,12 +38,10 @@ interface ShotsTabProps {
   shots: Shot[];
   generateLoading: boolean;
   generatingImages: Set<number>;
-  generatingVideos: Set<number>;
   onGenerateStoryboard: () => void;
   onEditShot: (shot: Shot) => void;
   onDeleteShot: (shotId: number) => void;
   onGenerateImage: (shot: Shot, config: any) => void;
-  onGenerateVideo: (shot: Shot) => void;
 }
 
 /**
@@ -54,12 +51,10 @@ export default function ShotsTab({
   shots,
   generateLoading,
   generatingImages,
-  generatingVideos,
   onGenerateStoryboard,
   onEditShot,
   onDeleteShot,
   onGenerateImage,
-  onGenerateVideo,
 }: ShotsTabProps) {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentShot, setCurrentShot] = useState<Shot | null>(null);
@@ -205,14 +200,6 @@ export default function ShotsTab({
                 loading={generatingImages.has(shot.id)}
               >
                 生成图像
-              </Button>
-              <Button
-                icon={<VideoCameraOutlined />}
-                onClick={() => onGenerateVideo(shot)}
-                loading={generatingVideos.has(shot.id)}
-                disabled={!shot.images || shot.images.length === 0}
-              >
-                生成视频
               </Button>
             </div>
           </Card>
