@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Card, Button, Space, Tag, Empty, Popconfirm, Image } from 'antd';
+import { Card, Button, Space, Tag, Empty, Popconfirm, Image, Modal } from 'antd';
 import {
   ThunderboltOutlined,
   EditOutlined,
   DeleteOutlined,
   PictureOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 
 import ImageGenerateModal from './ImageGenerateModal';
@@ -12,6 +13,8 @@ import ImageGenerateModal from './ImageGenerateModal';
 interface ShotImage {
   id: number;
   url: string;
+  isFirstFrame?: boolean;
+  isLastFrame?: boolean;
 }
 
 interface ShotVideo {
@@ -42,6 +45,9 @@ interface ShotsTabProps {
   onEditShot: (shot: Shot) => void;
   onDeleteShot: (shotId: number) => void;
   onGenerateImage: (shot: Shot, config: any) => void;
+  onDeleteImage: (imageId: number) => void;
+  onSetFirstFrame: (shotId: number, imageId: number) => void;
+  onSetLastFrame: (shotId: number, imageId: number) => void;
 }
 
 /**
@@ -55,6 +61,9 @@ export default function ShotsTab({
   onEditShot,
   onDeleteShot,
   onGenerateImage,
+  onDeleteImage,
+  onSetFirstFrame,
+  onSetLastFrame,
 }: ShotsTabProps) {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentShot, setCurrentShot] = useState<Shot | null>(null);
@@ -170,22 +179,86 @@ export default function ShotsTab({
                     display: 'flex',
                     gap: 8,
                     flexWrap: 'wrap',
-                    maxHeight: 220,
+                    maxHeight: 320,
                     overflowY: 'auto',
                     overflowX: 'hidden',
                   }}
                 >
                   {shot.images.map((img, idx) => (
-                    <Image
-                      src={img.url}
-                      alt={`图片 ${idx + 1}`}
+                    <div
+                      key={img.id || idx}
                       style={{
-                        width: 100,
-                        height: 100,
-                        objectFit: 'cover',
+                        position: 'relative',
+                        width: 150,
+                        height: 150,
+                        cursor: 'pointer',
                       }}
-                      preview={{ mask: `图片 ${idx + 1}` }}
-                    />
+                      onClick={() => {
+                        Modal.info({
+                          title: `图片 ${idx + 1}`,
+                          content: (
+                            <div>
+                              <img
+                                src={img.url}
+                                alt=""
+                                style={{ width: '100%', maxHeight: 400, objectFit: 'contain', marginBottom: 16 }}
+                              />
+                              <Space>
+                                <Button
+                                  icon={<StarOutlined />}
+                                  onClick={() => {
+                                    onSetFirstFrame(shot.id, img.id);
+                                    Modal.destroyAll();
+                                  }}
+                                >
+                                  设为首帧
+                                </Button>
+                                <Button
+                                  icon={<StarOutlined />}
+                                  style={{ color: '#1890ff' }}
+                                  onClick={() => {
+                                    onSetLastFrame(shot.id, img.id);
+                                    Modal.destroyAll();
+                                  }}
+                                >
+                                  设为尾帧
+                                </Button>
+                                <Popconfirm
+                                  title="确定删除这张图片吗？"
+                                  onConfirm={() => {
+                                    onDeleteImage(img.id);
+                                    Modal.destroyAll();
+                                  }}
+                                >
+                                  <Button danger icon={<DeleteOutlined />}>
+                                    删除
+                                  </Button>
+                                </Popconfirm>
+                              </Space>
+                            </div>
+                          ),
+                          width: 700,
+                          okText: '关闭',
+                        });
+                      }}
+                    >
+                      <Image
+                        src={img.url}
+                        alt={`图片 ${idx + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: 4,
+                          border: img.isFirstFrame
+                            ? '2px solid #faad14'
+                            : img.isLastFrame
+                              ? '2px solid #1890ff'
+                              : '1px solid #d9d9d9',
+                        }}
+                        preview={false}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
