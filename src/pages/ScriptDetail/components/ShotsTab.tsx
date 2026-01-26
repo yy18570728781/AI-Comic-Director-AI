@@ -268,14 +268,51 @@ export default function ShotsTab({
                           height: '100%',
                           objectFit: 'cover',
                           borderRadius: 4,
-                          border: img.isFirstFrame
-                            ? '2px solid #faad14'
-                            : img.isLastFrame
-                              ? '2px solid #1890ff'
-                              : '1px solid #d9d9d9',
                         }}
                         preview={false}
                       />
+                      {/* 首帧标签 */}
+                      {img.isFirstFrame && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            background: 'rgba(250, 173, 20, 0.85)',
+                            backdropFilter: 'blur(8px)',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: '0 4px 0 8px',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                            zIndex: 10,
+                          }}
+                        >
+                          首帧
+                        </div>
+                      )}
+                      {/* 尾帧标签 */}
+                      {img.isLastFrame && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: img.isFirstFrame ? 24 : 0,
+                            right: 0,
+                            background: 'rgba(24, 144, 255, 0.85)',
+                            backdropFilter: 'blur(8px)',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: '0 4px 0 8px',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                            zIndex: 10,
+                          }}
+                        >
+                          尾帧
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
