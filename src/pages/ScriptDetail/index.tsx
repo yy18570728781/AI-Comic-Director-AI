@@ -14,7 +14,11 @@ import {
   Empty,
 } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftOutlined, ThunderboltOutlined, MergeCellsOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  ThunderboltOutlined,
+  MergeCellsOutlined,
+} from '@ant-design/icons';
 
 import { generateImage } from '@/api/image';
 import { setFirstFrame, setLastFrame, deleteImage } from '@/api/image-action';
@@ -239,34 +243,85 @@ function ScriptDetail() {
     }
   };
 
-  // 设置首帧
+  // 设置首帧（局部更新）
   const handleSetFirstFrame = async (shotId: number, imageId: number) => {
     try {
       await setFirstFrame(imageId);
       message.success('已设置为首帧');
-      loadScript();
+
+      // 局部更新：只清除首帧标记，保留尾帧
+      setScript((prevScript: any) => {
+        if (!prevScript) return prevScript;
+
+        const updatedShots = prevScript.shots.map((shot: any) => {
+          if (shot.id === shotId) {
+            const updatedImages = (shot.images || []).map((img: any) => ({
+              ...img,
+              isFirstFrame: img.id === imageId,
+            }));
+            return { ...shot, images: updatedImages };
+          }
+          return shot;
+        });
+
+        return { ...prevScript, shots: updatedShots };
+      });
     } catch (error: any) {
       message.error(error.message || '设置失败');
     }
   };
 
-  // 设置尾帧
+  // 设置尾帧（局部更新）
   const handleSetLastFrame = async (shotId: number, imageId: number) => {
     try {
       await setLastFrame(imageId);
       message.success('已设置为尾帧');
-      loadScript();
+
+      // 局部更新：只清除尾帧标记，保留首帧
+      setScript((prevScript: any) => {
+        if (!prevScript) return prevScript;
+
+        const updatedShots = prevScript.shots.map((shot: any) => {
+          if (shot.id === shotId) {
+            const updatedImages = (shot.images || []).map((img: any) => ({
+              ...img,
+              isLastFrame: img.id === imageId,
+            }));
+            return { ...shot, images: updatedImages };
+          }
+          return shot;
+        });
+
+        return { ...prevScript, shots: updatedShots };
+      });
     } catch (error: any) {
       message.error(error.message || '设置失败');
     }
   };
 
-  // 删除图片
+  // 删除图片（局部更新）
   const handleDeleteImage = async (imageId: number) => {
     try {
       await deleteImage(imageId);
-      message.success('删除成功');
-      loadScript();
+      message.success('图片删除成功');
+
+      // 局部更新：从对应镜头的 images 中移除
+      setScript((prevScript: any) => {
+        if (!prevScript) return prevScript;
+
+        const updatedShots = prevScript.shots.map((shot: any) => {
+          const hasDeletedImage = shot.images?.some((img: any) => img.id === imageId);
+          if (hasDeletedImage) {
+            return {
+              ...shot,
+              images: shot.images.filter((img: any) => img.id !== imageId),
+            };
+          }
+          return shot;
+        });
+
+        return { ...prevScript, shots: updatedShots };
+      });
     } catch (error: any) {
       message.error(error.message || '删除失败');
     }
@@ -414,9 +469,10 @@ function ScriptDetail() {
       return;
     }
 
-    // 检查是否有图片
-    if (!shot.images || shot.images.length === 0) {
-      message.warning('请先生成图像，再生成视频');
+    // 检查是否有首帧
+    const firstFrameImage = shot.images?.find((img: any) => img.isFirstFrame);
+    if (!firstFrameImage) {
+      message.warning('请先设置首帧图片，再生成视频');
       return;
     }
 
@@ -429,13 +485,25 @@ function ScriptDetail() {
         duration: 2,
       });
 
-      const referenceImage = shot.images[shot.images.length - 1].url;
+      // 检查是否有尾帧
+      const lastFrameImage = shot.images?.find((img: any) => img.isLastFrame);
 
-      const res = await generateVideo({
+      const params: any = {
         prompt: shot.videoPrompt || shot.visualDescription || '',
         model: 'wan2.6-i2v-flash',
-        referenceImage,
-      });
+      };
+
+      if (lastFrameImage) {
+        // 使用首尾帧
+        params.referenceImages = [firstFrameImage.url, lastFrameImage.url];
+        console.log('🎬 使用首尾帧生成视频');
+      } else {
+        // 只用首帧
+        params.referenceImage = firstFrameImage.url;
+        console.log('🎬 使用单图（首帧）生成视频');
+      }
+
+      const res = await generateVideo(params);
 
       if (res.success && res.data.taskId) {
         // 添加到全局任务列表

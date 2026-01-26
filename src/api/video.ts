@@ -8,6 +8,7 @@ export function generateVideo(data: {
     model?: string
     duration?: number
     referenceImage?: string
+    referenceImages?: string[]
     resolution?: string
 }) {
     return request({

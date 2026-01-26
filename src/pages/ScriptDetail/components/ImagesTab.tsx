@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { Card, Button, Space, Tag, Empty, Popconfirm, Image } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
   PictureOutlined,
   VideoCameraOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
-import { useState } from 'react';
+
 import ImageGenerateModal from './ImageGenerateModal';
 
 interface ShotImage {
@@ -132,37 +134,78 @@ export default function ImagesTab({
             </div>
           )}
 
-          {/* 图片展示区域 */}
+          {/* 图片展示区域 - 首帧和尾帧 */}
           <div
             style={{
               width: '100%',
               height: '200px',
               backgroundColor: '#f5f5f5',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              gap: '2px',
               overflow: 'hidden',
             }}
           >
-            {shot.images && shot.images.length > 0 ? (
-              <Image
-                src={shot.images[shot.images.length - 1].url}
-                alt={`镜头 ${shot.shotNumber}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-                preview={{
-                  mask: '查看大图',
-                }}
-              />
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="暂无图像"
-              />
-            )}
+            {/* 首帧 */}
+            <div
+              style={{
+                flex: 1,
+                position: 'relative',
+                backgroundColor: '#fff7e6',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Tag color="#faad14" style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, margin: 0 }}>首帧</Tag>
+              {shot.images?.find((img: any) => img.isFirstFrame) ? (
+                <Image
+                  src={shot.images.find((img: any) => img.isFirstFrame)?.url}
+                  alt="首帧"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                  preview={{
+                    mask: '首帧',
+                  }}
+                />
+              ) : (
+                <span style={{ color: '#d48806', fontSize: 12 }}>未设置</span>
+              )}
+            </div>
+
+            {/* 尾帧 */}
+            <div
+              style={{
+                flex: 1,
+                position: 'relative',
+                backgroundColor: '#e6f7ff',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Tag color="#1890ff" style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, margin: 0 }}>尾帧</Tag>
+              {shot.images?.find((img: any) => img.isLastFrame) ? (
+                <Image
+                  src={shot.images.find((img: any) => img.isLastFrame)?.url}
+                  alt="尾帧"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                  preview={{
+                    mask: '尾帧',
+                  }}
+                />
+              ) : (
+                <span style={{ color: '#096dd9', fontSize: 12 }}>未设置</span>
+              )}
+            </div>
           </div>
 
           {/* 画面描述 */}
@@ -231,7 +274,7 @@ export default function ImagesTab({
                 icon={<VideoCameraOutlined />}
                 onClick={() => onGenerateVideo(shot)}
                 loading={generatingVideos.has(shot.id)}
-                disabled={!shot.images || shot.images.length === 0}
+                disabled={!shot.images?.some((img: any) => img.isFirstFrame)}
               >
                 生成视频
               </Button>
