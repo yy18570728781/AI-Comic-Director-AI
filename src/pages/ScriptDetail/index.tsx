@@ -379,7 +379,7 @@ function ScriptDetail() {
 
       const res = await generateImage({
         prompt,
-        model: 'wanx',
+        model: config?.model || 'wanx', // 使用传入的模型，如果没有则使用 wanx
         width,
         height,
         referenceImages: config?.referenceImages || [],
