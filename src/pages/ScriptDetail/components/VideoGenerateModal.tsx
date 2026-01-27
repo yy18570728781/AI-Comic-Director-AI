@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Space, message, Select } from 'antd';
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  Space,
+  message,
+  Select,
+  InputNumber,
+} from 'antd';
 import { ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
@@ -24,6 +33,7 @@ export default function VideoGenerateModal({
 }: VideoGenerateModalProps) {
   const [form] = Form.useForm();
   const [optimizing, setOptimizing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // 当弹窗打开时，初始化表单
   useEffect(() => {
@@ -65,11 +75,57 @@ export default function VideoGenerateModal({
     }
   };
 
+  // 保存表单到后端（不生成视频）
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+
+      setSaving(true);
+      try {
+        const { updateShot } = await import('@/api/script');
+        const res = await updateShot(shot.id, {
+          videoPrompt: values.videoPrompt,
+          duration: values.duration,
+        });
+
+        // 全局拦截器已经处理了 success: false 的情况
+        // 这里只需要处理成功的情况
+        if (res.success) {
+          message.success('保存成功');
+        }
+      } catch (error: any) {
+        console.error('保存失败:', error);
+        // 全局拦截器已经显示了错误消息
+      } finally {
+        setSaving(false);
+      }
+    } catch (error) {
+      console.error('表单验证失败:', error);
+    }
+  };
+
   // 提交表单
-  const handleSubmit = () => {
-    form.validateFields().then((values) => {
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+
+      // 生成视频前先保存表单
+      console.log('💾 生成视频前保存表单到数据库');
+      try {
+        const { updateShot } = await import('@/api/script');
+        await updateShot(shot.id, {
+          videoPrompt: values.videoPrompt,
+          duration: values.duration,
+        });
+      } catch (error) {
+        console.error('保存表单失败:', error);
+        // 不阻塞生成流程
+      }
+
       onSubmit(values);
-    });
+    } catch (error) {
+      console.error('表单验证失败:', error);
+    }
   };
 
   // 获取首帧和尾帧
@@ -85,6 +141,9 @@ export default function VideoGenerateModal({
       footer={[
         <Button key="cancel" onClick={onCancel}>
           取消
+        </Button>,
+        <Button key="save" onClick={handleSave} loading={saving}>
+          保存
         </Button>,
         <Button
           key="submit"
@@ -203,58 +262,109 @@ export default function VideoGenerateModal({
           </div>
         </div>
 
-        {/* 视频提示词 */}
-        <Form.Item
-          label={
-            <Space>
-              <span>视频提示词</span>
-              <Button
-                type="link"
-                size="small"
-                icon={<SyncOutlined spin={optimizing} />}
-                onClick={handleOptimizePrompt}
-                loading={optimizing}
-                style={{ padding: 0, height: 'auto' }}
-              >
-                AI 优化
-              </Button>
-            </Space>
-          }
-          name="videoPrompt"
-          rules={[{ required: true, message: '请输入视频提示词' }]}
+        {/* 分镜配置区域 */}
+        <div
+          style={{
+            marginBottom: 24,
+            padding: 16,
+            backgroundColor: '#f0f7ff',
+            borderRadius: 8,
+            border: '1px solid #91d5ff',
+          }}
         >
-          <TextArea
-            rows={6}
-            placeholder="描述视频中的动作、运镜、氛围等&#10;例如：镜头缓缓推进，角色转身看向远方，背景光线逐渐变暗"
-            showCount
-            maxLength={500}
-          />
-        </Form.Item>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 12,
+              color: '#0958d9',
+            }}
+          >
+            📝 分镜配置（保存到数据库）
+          </div>
 
-        {/* 模型选择 */}
-        <Form.Item
-          label="视频模型"
-          name="model"
-          rules={[{ required: true, message: '请选择视频模型' }]}
-        >
-          <Select>
-            <Select.Option value="wan2.6-i2v-flash">
-              通义万相 2.6 (图生视频-快速)
-            </Select.Option>
-          </Select>
-        </Form.Item>
+          {/* 视频提示词 */}
+          <Form.Item
+            label={
+              <Space>
+                <span>视频提示词</span>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<SyncOutlined spin={optimizing} />}
+                  onClick={handleOptimizePrompt}
+                  loading={optimizing}
+                  style={{ padding: 0, height: 'auto' }}
+                >
+                  AI 优化
+                </Button>
+              </Space>
+            }
+            name="videoPrompt"
+            rules={[{ required: true, message: '请输入视频提示词' }]}
+            extra={
+              <div style={{ color: '#999', fontSize: 12 }}>
+                💡 AI 优化会将提示词转换为时间轴格式，更适合视频生成
+              </div>
+            }
+          >
+            <TextArea
+              rows={6}
+              placeholder="描述视频中的动作、运镜、氛围等&#10;例如：镜头缓缓推进，角色转身看向远方，背景光线逐渐变暗&#10;&#10;AI 优化后会自动转换为时间轴格式"
+              showCount
+              maxLength={1000}
+            />
+          </Form.Item>
 
-        {/* 视频时长 */}
-        <Form.Item
-          label="视频时长"
-          name="duration"
-          rules={[{ required: true, message: '请选择视频时长' }]}
+          {/* 视频时长 */}
+          <Form.Item
+            label="视频时长（秒）"
+            name="duration"
+            rules={[{ required: true, message: '请输入视频时长' }]}
+          >
+            <InputNumber
+              min={3}
+              max={15}
+              style={{ width: '100%' }}
+              placeholder="输入视频时长（3-15秒）"
+            />
+          </Form.Item>
+        </div>
+
+        {/* 生成配置区域 */}
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 16,
+            backgroundColor: '#f6ffed',
+            borderRadius: 8,
+            border: '1px solid #b7eb8f',
+          }}
         >
-          <Select>
-            <Select.Option value={5}>5秒</Select.Option>
-            <Select.Option value={10}>10秒</Select.Option>
-          </Select>
-        </Form.Item>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginBottom: 12,
+              color: '#389e0d',
+            }}
+          >
+            ⚙️ 生成配置（仅用于本次生成）
+          </div>
+
+          {/* 模型选择 */}
+          <Form.Item
+            label="视频模型"
+            name="model"
+            rules={[{ required: true, message: '请选择视频模型' }]}
+          >
+            <Select>
+              <Select.Option value="wan2.6-i2v-flash">
+                通义万相 2.6 (图生视频-快速)
+              </Select.Option>
+            </Select>
+          </Form.Item>
+        </div>
 
         <div
           style={{
