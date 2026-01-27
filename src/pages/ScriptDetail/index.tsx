@@ -191,12 +191,14 @@ function ScriptDetail() {
   const handleGenerateStoryboard = async () => {
     setGenerateLoading(true);
     try {
-      await generateStoryboard(parseInt(id!), {
+      const result = await generateStoryboard(parseInt(id!), {
         shotCount: 30,
       });
-      message.success('分镜脚本生成成功');
-      loadScript();
-      setActiveTab('shots');
+      if (result.success) {
+        message.success('分镜脚本生成成功');
+        loadScript();
+        setActiveTab('shots');
+      }
     } catch (error) {
       console.error(error);
     } finally {
