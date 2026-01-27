@@ -251,22 +251,60 @@ export default function ImagesTab({
             </div>
           </div>
 
-          {/* 画面描述 */}
+          {/* 提示词显示 */}
           <div
             style={{
               padding: '12px 16px',
-              fontSize: 12,
-              color: '#666',
-              lineHeight: 1.6,
-              maxHeight: '60px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
+              borderTop: '1px solid #f0f0f0',
             }}
           >
-            {shot.visualDescription || shot.imagePrompt || '暂无描述'}
+            {shot.imagePrompt && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                  图像提示词：
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#666',
+                    lineHeight: 1.6,
+                    maxHeight: '48px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                  }}
+                >
+                  {shot.imagePrompt}
+                </div>
+              </div>
+            )}
+            {shot.videoPrompt && (
+              <div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                  视频提示词：
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#666',
+                    lineHeight: 1.6,
+                    maxHeight: '48px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                  }}
+                >
+                  {shot.videoPrompt}
+                </div>
+              </div>
+            )}
+            {!shot.imagePrompt && !shot.videoPrompt && (
+              <div style={{ fontSize: 12, color: '#999' }}>暂无提示词</div>
+            )}
           </div>
 
           {/* 视频任务状态 */}

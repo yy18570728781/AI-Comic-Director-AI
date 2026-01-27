@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Card, Button, Space, Tag, Empty, Popconfirm, Image, Modal, message } from 'antd';
+import {
+  Card,
+  Button,
+  Space,
+  Tag,
+  Empty,
+  Popconfirm,
+  Image,
+  Modal,
+  message,
+} from 'antd';
 import {
   ThunderboltOutlined,
   EditOutlined,
@@ -156,14 +166,16 @@ export default function ShotsTab({
             {shot.dialogue && (
               <div style={{ marginBottom: 8 }}>
                 <strong>对白：</strong>
-                <div style={{ marginTop: 4, color: '#666' }}>{shot.dialogue}</div>
+                <div style={{ marginTop: 4, color: '#666' }}>
+                  {shot.dialogue}
+                </div>
               </div>
             )}
-            {shot.visualDescription && (
+            {shot.imagePrompt && (
               <div style={{ marginBottom: 8 }}>
-                <strong>画面描述：</strong>
+                <strong>图像提示词：</strong>
                 <div style={{ marginTop: 4, color: '#666' }}>
-                  {shot.visualDescription}
+                  {shot.imagePrompt}
                 </div>
               </div>
             )}
@@ -216,13 +228,22 @@ export default function ShotsTab({
                               <img
                                 src={img.url}
                                 alt=""
-                                style={{ width: '100%', maxHeight: 400, objectFit: 'contain', marginBottom: 16 }}
+                                style={{
+                                  width: '100%',
+                                  maxHeight: 400,
+                                  objectFit: 'contain',
+                                  marginBottom: 16,
+                                }}
                               />
                               <Space>
                                 <Button
                                   type="primary"
                                   icon={<StarOutlined />}
-                                  style={{ background: '#ffc107', borderColor: '#ffc107', color: '#000' }}
+                                  style={{
+                                    background: '#ffc107',
+                                    borderColor: '#ffc107',
+                                    color: '#000',
+                                  }}
                                   onClick={() => {
                                     onSetFirstFrame(shot.id, img.id);
                                     Modal.destroyAll();
@@ -233,7 +254,10 @@ export default function ShotsTab({
                                 <Button
                                   type="primary"
                                   icon={<StarOutlined />}
-                                  style={{ background: '#1890ff', borderColor: '#1890ff' }}
+                                  style={{
+                                    background: '#1890ff',
+                                    borderColor: '#1890ff',
+                                  }}
                                   onClick={() => {
                                     onSetLastFrame(shot.id, img.id);
                                     Modal.destroyAll();
