@@ -10,6 +10,7 @@ import {
   InputNumber,
 } from 'antd';
 import { ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
+import { useModelStore } from '@/stores/useModelStore';
 
 const { TextArea } = Input;
 
@@ -35,12 +36,14 @@ export default function VideoGenerateModal({
   const [optimizing, setOptimizing] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // 获取全局选择的视频模型
+  const { videoModel } = useModelStore();
+
   // 当弹窗打开时，初始化表单
   useEffect(() => {
     if (visible && shot) {
       form.setFieldsValue({
         videoPrompt: shot.videoPrompt || shot.visualDescription || '',
-        model: 'wan2.6-i2v-flash',
         duration: 5,
       });
     }
@@ -122,7 +125,11 @@ export default function VideoGenerateModal({
         // 不阻塞生成流程
       }
 
-      onSubmit(values);
+      // 使用全局选择的视频模型
+      onSubmit({
+        ...values,
+        model: videoModel, // 使用全局模型配置
+      });
     } catch (error) {
       console.error('表单验证失败:', error);
     }
@@ -351,19 +358,6 @@ export default function VideoGenerateModal({
           >
             ⚙️ 生成配置（仅用于本次生成）
           </div>
-
-          {/* 模型选择 */}
-          <Form.Item
-            label="视频模型"
-            name="model"
-            rules={[{ required: true, message: '请选择视频模型' }]}
-          >
-            <Select>
-              <Select.Option value="wan2.6-i2v-flash">
-                通义万相 2.6 (图生视频-快速)
-              </Select.Option>
-            </Select>
-          </Form.Item>
         </div>
 
         <div
