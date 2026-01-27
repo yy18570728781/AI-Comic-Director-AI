@@ -89,9 +89,7 @@ function ScriptDetail() {
         if (shot.id === shotId) {
           return {
             ...shot,
-            images: shot.images
-              ? [...shot.images, image]
-              : [image],
+            images: shot.images ? [...shot.images, image] : [image],
           };
         }
         return shot;
@@ -113,9 +111,7 @@ function ScriptDetail() {
         if (shot.id === shotId) {
           return {
             ...shot,
-            videos: shot.videos
-              ? [...shot.videos, video]
-              : [video],
+            videos: shot.videos ? [...shot.videos, video] : [video],
           };
         }
         return shot;
@@ -129,48 +125,58 @@ function ScriptDetail() {
   }, []);
 
   // 图片轮询回调
-  const handleImageComplete = useCallback((results: any[]) => {
-    results.forEach((result: any) => {
-      if (result.status === 'completed') {
-        if (result.shotId !== 0) {
-          updateShotImage(result.shotId, result.image);
-          message.success(`镜头 #${result.shotId} 图像生成成功！`);
-          // 移除 generatingImages 状态
-          setGeneratingImages((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(result.shotId);
-            return newSet;
-          });
-        } else {
-          message.success('图像融合成功！');
+  const handleImageComplete = useCallback(
+    (results: any[]) => {
+      results.forEach((result: any) => {
+        if (result.status === 'completed') {
+          if (result.shotId !== 0) {
+            updateShotImage(result.shotId, result.image);
+            message.success(`镜头 #${result.shotId} 图像生成成功！`);
+            // 移除 generatingImages 状态
+            setGeneratingImages((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(result.shotId);
+              return newSet;
+            });
+          } else {
+            message.success('图像融合成功！');
+          }
+        } else if (result.status === 'failed' || result.status === 'error') {
+          if (result.shotId !== 0) {
+            message.error(
+              `镜头 #${result.shotId} 图像生成失败: ${result.error || '未知错误'}`,
+            );
+            // 移除 generatingImages 状态（失败也要移除）
+            setGeneratingImages((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(result.shotId);
+              return newSet;
+            });
+          } else {
+            message.error(`图像生成失败: ${result.error || '未知错误'}`);
+          }
         }
-      } else if (result.status === 'failed' || result.status === 'error') {
-        if (result.shotId !== 0) {
-          message.error(`镜头 #${result.shotId} 图像生成失败: ${result.error || '未知错误'}`);
-          // 移除 generatingImages 状态（失败也要移除）
-          setGeneratingImages((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(result.shotId);
-            return newSet;
-          });
-        } else {
-          message.error(`图像生成失败: ${result.error || '未知错误'}`);
-        }
-      }
-    });
-  }, [updateShotImage]);
+      });
+    },
+    [updateShotImage],
+  );
 
   // 视频轮询回调
-  const handleVideoComplete = useCallback((results: any[]) => {
-    results.forEach((result: any) => {
-      if (result.status === 'completed') {
-        updateShotVideo(result.shotId, result.video);
-        message.success(`镜头 #${result.shotId} 视频生成成功！`);
-      } else if (result.status === 'failed' || result.status === 'error') {
-        message.error(`镜头 #${result.shotId} 视频生成失败: ${result.error || '未知错误'}`);
-      }
-    });
-  }, [updateShotVideo]);
+  const handleVideoComplete = useCallback(
+    (results: any[]) => {
+      results.forEach((result: any) => {
+        if (result.status === 'completed') {
+          updateShotVideo(result.shotId, result.video);
+          message.success(`镜头 #${result.shotId} 视频生成成功！`);
+        } else if (result.status === 'failed' || result.status === 'error') {
+          message.error(
+            `镜头 #${result.shotId} 视频生成失败: ${result.error || '未知错误'}`,
+          );
+        }
+      });
+    },
+    [updateShotVideo],
+  );
 
   // 启用轮询
   useImagePolling({
@@ -310,7 +316,9 @@ function ScriptDetail() {
         if (!prevScript) return prevScript;
 
         const updatedShots = prevScript.shots.map((shot: any) => {
-          const hasDeletedImage = shot.images?.some((img: any) => img.id === imageId);
+          const hasDeletedImage = shot.images?.some(
+            (img: any) => img.id === imageId,
+          );
           if (hasDeletedImage) {
             return {
               ...shot,
@@ -456,12 +464,13 @@ function ScriptDetail() {
   };
 
   // 生成视频
-  const handleGenerateVideo = async (shot: any) => {
+  const handleGenerateVideo = async (shot: any, config: any) => {
     const shotId = shot.id;
 
     console.log('🎬 前端：准备生成视频');
     console.log('📋 shot 对象:', shot);
     console.log('🆔 shotId:', shotId);
+    console.log('⚙️ 配置:', config);
 
     // 防止重复生成
     if (generatingVideos.has(shotId)) {
@@ -489,8 +498,13 @@ function ScriptDetail() {
       const lastFrameImage = shot.images?.find((img: any) => img.isLastFrame);
 
       const params: any = {
-        prompt: shot.videoPrompt || shot.visualDescription || '',
-        model: 'wan2.6-i2v-flash',
+        prompt:
+          config.videoPrompt ||
+          shot.videoPrompt ||
+          shot.visualDescription ||
+          '',
+        model: config.model || 'wan2.6-i2v-flash',
+        duration: config.duration || 5,
       };
 
       if (lastFrameImage) {
@@ -510,12 +524,12 @@ function ScriptDetail() {
         console.log('✅ 前端：添加视频任务到全局列表', {
           taskId: res.data.taskId,
           shotId,
-          model: 'wan2.6-i2v-flash',
+          model: params.model,
         });
         addVideoTask({
           taskId: res.data.taskId,
           shotId,
-          model: 'wan2.6-i2v-flash',
+          model: params.model,
         });
 
         message.info({
@@ -571,14 +585,14 @@ function ScriptDetail() {
             (total: number, shot: any) => total + (shot.images?.length || 0),
             0,
           ) > 0 && (
-              <Tag color="blue">
-                {script.shots.reduce(
-                  (total: number, shot: any) =>
-                    total + (shot.images?.length || 0),
-                  0,
-                )}
-              </Tag>
-            )}
+            <Tag color="blue">
+              {script.shots.reduce(
+                (total: number, shot: any) =>
+                  total + (shot.images?.length || 0),
+                0,
+              )}
+            </Tag>
+          )}
         </span>
       ),
     },
@@ -591,14 +605,14 @@ function ScriptDetail() {
             (total: number, shot: any) => total + (shot.videos?.length || 0),
             0,
           ) > 0 && (
-              <Tag color="blue">
-                {script.shots.reduce(
-                  (total: number, shot: any) =>
-                    total + (shot.videos?.length || 0),
-                  0,
-                )}
-              </Tag>
-            )}
+            <Tag color="blue">
+              {script.shots.reduce(
+                (total: number, shot: any) =>
+                  total + (shot.videos?.length || 0),
+                0,
+              )}
+            </Tag>
+          )}
         </span>
       ),
     },
@@ -803,4 +817,3 @@ function ScriptDetail() {
 }
 
 export default ScriptDetail;
-

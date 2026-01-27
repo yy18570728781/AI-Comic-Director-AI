@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 
 import ImageGenerateModal from './ImageGenerateModal';
+import VideoGenerateModal from './VideoGenerateModal';
 
 interface ShotImage {
   id: number;
@@ -38,7 +39,7 @@ interface ImagesTabProps {
   generatingVideos: Set<number>;
   scriptId?: number;
   onGenerateImage: (shot: Shot, config: any) => void;
-  onGenerateVideo: (shot: Shot) => void;
+  onGenerateVideo: (shot: Shot, config: any) => void;
   onEditShot: (shot: Shot) => void;
   onDeleteShot: (shotId: number) => void;
 }
@@ -57,6 +58,7 @@ export default function ImagesTab({
   onDeleteShot,
 }: ImagesTabProps) {
   const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentShot, setCurrentShot] = useState<Shot | null>(null);
 
   // 打开图像生成弹窗
@@ -65,9 +67,20 @@ export default function ImagesTab({
     setImageModalVisible(true);
   };
 
+  // 打开视频生成弹窗
+  const handleOpenVideoModal = (shot: Shot) => {
+    setCurrentShot(shot);
+    setVideoModalVisible(true);
+  };
+
   // 关闭弹窗
   const handleCloseImageModal = () => {
     setImageModalVisible(false);
+    setCurrentShot(null);
+  };
+
+  const handleCloseVideoModal = () => {
+    setVideoModalVisible(false);
     setCurrentShot(null);
   };
 
@@ -76,6 +89,14 @@ export default function ImagesTab({
     if (currentShot) {
       onGenerateImage(currentShot, config);
       handleCloseImageModal();
+    }
+  };
+
+  // 提交视频生成
+  const handleSubmitVideoGenerate = (config: any) => {
+    if (currentShot) {
+      onGenerateVideo(currentShot, config);
+      handleCloseVideoModal();
     }
   };
 
@@ -157,7 +178,18 @@ export default function ImagesTab({
                 justifyContent: 'center',
               }}
             >
-              <Tag color="#faad14" style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, margin: 0 }}>首帧</Tag>
+              <Tag
+                color="#faad14"
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  zIndex: 10,
+                  margin: 0,
+                }}
+              >
+                首帧
+              </Tag>
               {shot.images?.find((img: any) => img.isFirstFrame) ? (
                 <Image
                   src={shot.images.find((img: any) => img.isFirstFrame)?.url}
@@ -188,7 +220,18 @@ export default function ImagesTab({
                 justifyContent: 'center',
               }}
             >
-              <Tag color="#1890ff" style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, margin: 0 }}>尾帧</Tag>
+              <Tag
+                color="#1890ff"
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  zIndex: 10,
+                  margin: 0,
+                }}
+              >
+                尾帧
+              </Tag>
               {shot.images?.find((img: any) => img.isLastFrame) ? (
                 <Image
                   src={shot.images.find((img: any) => img.isLastFrame)?.url}
@@ -272,7 +315,7 @@ export default function ImagesTab({
               <Button
                 style={{ flex: 1 }}
                 icon={<VideoCameraOutlined />}
-                onClick={() => onGenerateVideo(shot)}
+                onClick={() => handleOpenVideoModal(shot)}
                 loading={generatingVideos.has(shot.id)}
                 disabled={!shot.images?.some((img: any) => img.isFirstFrame)}
               >
@@ -328,6 +371,15 @@ export default function ImagesTab({
         loading={currentShot ? generatingImages.has(currentShot.id) : false}
         onCancel={handleCloseImageModal}
         onSubmit={handleSubmitImageGenerate}
+      />
+
+      {/* 视频生成配置弹窗 */}
+      <VideoGenerateModal
+        visible={videoModalVisible}
+        shot={currentShot}
+        loading={currentShot ? generatingVideos.has(currentShot.id) : false}
+        onCancel={handleCloseVideoModal}
+        onSubmit={handleSubmitVideoGenerate}
       />
     </>
   );
