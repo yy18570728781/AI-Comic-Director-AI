@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Empty, Checkbox, Image, Spin, Radio, Input, Tag, Pagination, message } from 'antd';
+import {
+  Empty,
+  Checkbox,
+  Image,
+  Spin,
+  Radio,
+  Input,
+  Tag,
+  Pagination,
+  message,
+} from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
 import { getResourceList } from '@/api/resource';
@@ -22,8 +32,8 @@ export default function ResourceLibraryTab({
   onChange,
 }: ResourceLibraryTabProps) {
   const [resourceType, setResourceType] = useState<
-    'character' | 'scene' | 'prop' | 'blend'
-  >('character');
+    'all' | 'character' | 'scene' | 'prop' | 'blend'
+  >('all');
   const [scope, setScope] = useState<'all' | 'script'>('all');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +50,7 @@ export default function ResourceLibraryTab({
     setLoading(true);
     try {
       const res = await getResourceList({
-        type: resourceType,
+        ...(resourceType !== 'all' ? { type: resourceType } : {}),
         ...(scope === 'script' && scriptId ? { scriptId } : {}),
         keyword: keyword || undefined,
         page,
@@ -106,7 +116,11 @@ export default function ResourceLibraryTab({
   // 获取资源的显示图片
   const getResourceImage = (resource: any): string | null => {
     // 使用 images 数组的第一个图片（后端已确保只有一个）
-    if (resource.images && resource.images.length > 0 && resource.images[0]?.url) {
+    if (
+      resource.images &&
+      resource.images.length > 0 &&
+      resource.images[0]?.url
+    ) {
       return resource.images[0].url;
     }
     // 其次使用 referenceImages（参考图）
@@ -149,13 +163,21 @@ export default function ResourceLibraryTab({
           gap: 16,
         }}
       >
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           <div>
             <span style={{ marginRight: 8 }}>资源类型：</span>
             <Radio.Group
               value={resourceType}
               onChange={(e) => setResourceType(e.target.value)}
             >
+              <Radio.Button value="all">全部</Radio.Button>
               <Radio.Button value="character">角色</Radio.Button>
               <Radio.Button value="scene">场景</Radio.Button>
               <Radio.Button value="prop">道具</Radio.Button>
@@ -164,7 +186,10 @@ export default function ResourceLibraryTab({
           </div>
           <div>
             <span style={{ marginRight: 8 }}>范围：</span>
-            <Radio.Group value={scope} onChange={(e) => setScope(e.target.value)}>
+            <Radio.Group
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+            >
               <Radio.Button value="all">全局</Radio.Button>
               <Radio.Button value="script" disabled={!scriptId}>
                 当前剧本
@@ -192,7 +217,11 @@ export default function ResourceLibraryTab({
       ) : resources.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={`暂无${getTypeName(resourceType)}资源`}
+          description={
+            resourceType === 'all'
+              ? '暂无资源'
+              : `暂无${getTypeName(resourceType)}资源`
+          }
           style={{ padding: '40px 0' }}
         >
           <div style={{ color: '#999', fontSize: 12 }}>
@@ -234,7 +263,9 @@ export default function ResourceLibraryTab({
                   >
                     <div style={{ textAlign: 'center' }}>
                       <div>暂无图片</div>
-                      <div style={{ marginTop: 4, fontSize: 11 }}>{resource.name}</div>
+                      <div style={{ marginTop: 4, fontSize: 11 }}>
+                        {resource.name}
+                      </div>
                     </div>
                     <div
                       style={{
@@ -259,7 +290,9 @@ export default function ResourceLibraryTab({
                   style={{
                     position: 'relative',
                     cursor: 'pointer',
-                    border: isSelected ? '2px solid #1890ff' : '2px solid #e8e8e8',
+                    border: isSelected
+                      ? '2px solid #1890ff'
+                      : '2px solid #e8e8e8',
                     borderRadius: 8,
                     overflow: 'hidden',
                     transition: 'all 0.3s',
@@ -267,7 +300,8 @@ export default function ResourceLibraryTab({
                   }}
                   onClick={() => handleToggleImage(imageUrl)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                    e.currentTarget.style.boxShadow =
+                      '0 4px 12px rgba(0,0,0,0.15)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.boxShadow = 'none';
@@ -323,7 +357,8 @@ export default function ResourceLibraryTab({
                       bottom: 0,
                       left: 0,
                       right: 0,
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                      background:
+                        'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
                       color: '#fff',
                       padding: '24px 8px 8px',
                     }}
@@ -341,22 +376,31 @@ export default function ResourceLibraryTab({
                       {resource.name}
                     </div>
                     {resource.tags && resource.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                        {resource.tags.slice(0, 2).map((tag: string, index: number) => (
-                          <Tag
-                            key={index}
-                            style={{
-                              margin: 0,
-                              fontSize: 10,
-                              padding: '0 4px',
-                              background: 'rgba(255,255,255,0.2)',
-                              color: '#fff',
-                              border: 'none',
-                            }}
-                          >
-                            {tag}
-                          </Tag>
-                        ))}
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 4,
+                          flexWrap: 'wrap',
+                          marginTop: 4,
+                        }}
+                      >
+                        {resource.tags
+                          .slice(0, 2)
+                          .map((tag: string, index: number) => (
+                            <Tag
+                              key={index}
+                              style={{
+                                margin: 0,
+                                fontSize: 10,
+                                padding: '0 4px',
+                                background: 'rgba(255,255,255,0.2)',
+                                color: '#fff',
+                                border: 'none',
+                              }}
+                            >
+                              {tag}
+                            </Tag>
+                          ))}
                       </div>
                     )}
                   </div>
