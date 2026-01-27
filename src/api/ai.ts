@@ -80,15 +80,11 @@ export function optimizeImagePrompt(data: {
 /**
  * 优化视频提示词
  */
-export function optimizeVideoPrompt(data: {
-    prompt: string
-    duration?: number
-    provider?: string
-}) {
+export function optimizeVideoPrompt(prompt: string, duration?: number) {
     return request({
         url: '/api/ai/prompt/optimize/video',
         method: 'post',
-        data,
+        data: { prompt, duration },
     })
 }
 
