@@ -28,6 +28,7 @@ interface Shot {
   duration?: number;
   visualDescription?: string;
   imagePrompt?: string;
+  videoPrompt?: string;
   images?: ShotImage[];
   videos?: ShotVideo[];
 }
