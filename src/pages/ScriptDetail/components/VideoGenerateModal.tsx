@@ -8,9 +8,11 @@ import {
   message,
   Select,
   InputNumber,
+  Tag,
 } from 'antd';
 import { ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
+import { getModelList } from '@/api/model';
 
 const { TextArea } = Input;
 
@@ -20,6 +22,20 @@ interface VideoGenerateModalProps {
   loading?: boolean;
   onCancel: () => void;
   onSubmit: (config: any) => void;
+}
+
+interface ModelConfig {
+  id: string;
+  name: string;
+  description: string;
+  config?: {
+    resolutions?: string[];
+    aspectRatios?: string[];
+    durations?: number[];
+    supportFirstLastFrame?: boolean;
+    supportCameraMovement?: boolean;
+    supportWatermark?: boolean;
+  };
 }
 
 /**
@@ -35,9 +51,42 @@ export default function VideoGenerateModal({
   const [form] = Form.useForm();
   const [optimizing, setOptimizing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [models, setModels] = useState<ModelConfig[]>([]);
+  const [aspectRatio, setAspectRatio] = useState<string>('16:9');
 
   // 获取全局选择的视频模型
   const { videoModel } = useModelStore();
+
+  // 获取模型列表
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await getModelList();
+        if (response.success && response.data) {
+          const videoModels = response.data.videoModels || [];
+          setModels(videoModels);
+
+          // 初始化当前模型的配置项
+          const currentModel = videoModels.find((m: any) => m.id === videoModel) as ModelConfig | undefined;
+          const currentConfig = currentModel?.config;
+          
+          if (currentConfig?.aspectRatios && currentConfig.aspectRatios.length > 0) {
+            setAspectRatio(currentConfig.aspectRatios[0]);
+          }
+        }
+      } catch (error) {
+        console.error('获取模型列表失败:', error);
+      }
+    };
+
+    if (visible) {
+      fetchModels();
+    }
+  }, [visible, videoModel]);
+
+  // 获取当前选中的模型配置
+  const currentModel = models.find((m) => m.id === videoModel) as ModelConfig | undefined;
+  const modelConfig = currentModel?.config;
 
   // 当弹窗打开时，初始化表单
   useEffect(() => {
@@ -129,6 +178,7 @@ export default function VideoGenerateModal({
       onSubmit({
         ...values,
         model: videoModel, // 使用全局模型配置
+        aspectRatio, // 添加画面比例参数
       });
     } catch (error) {
       console.error('表单验证失败:', error);
@@ -336,6 +386,24 @@ export default function VideoGenerateModal({
               placeholder="输入视频时长（3-15秒）"
             />
           </Form.Item>
+
+          {/* 画面比例选择 */}
+          {modelConfig?.aspectRatios && modelConfig.aspectRatios.length > 0 && (
+            <Form.Item label="画面比例">
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {modelConfig.aspectRatios.map((ratio) => (
+                  <Tag
+                    key={ratio}
+                    color={aspectRatio === ratio ? 'blue' : 'default'}
+                    onClick={() => setAspectRatio(ratio)}
+                    style={{ cursor: 'pointer', padding: '4px 12px' }}
+                  >
+                    {ratio === '16:9' ? '16:9 (电脑)' : ratio === '9:16' ? '9:16 (手机)' : ratio}
+                  </Tag>
+                ))}
+              </div>
+            </Form.Item>
+          )}
         </div>
 
         {/* 生成配置区域 */}
