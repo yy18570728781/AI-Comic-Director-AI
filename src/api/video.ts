@@ -40,3 +40,15 @@ export function batchGetVideoStatus(tasks: Array<{ taskId: string; shotId: numbe
         data: { tasks },
     })
 }
+
+/**
+ * 查询通用任务状态（用于独立页面）
+ */
+export function getGeneralTaskStatus(taskId: string, type: 'image' | 'video', model: string) {
+    const url = type === 'image' ? '/api/ai/image/status' : '/api/ai/video/status';
+    return request({
+        url,
+        method: 'post',
+        data: { taskId, model },
+    })
+}
