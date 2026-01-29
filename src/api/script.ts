@@ -112,3 +112,26 @@ export function updateShotOrder(shots: Array<{ id: number; sortOrder: number }>)
         data: { shots },
     })
 }
+
+/**
+ * 从剧本提取角色信息
+ */
+export function extractCharacters(scriptId: number) {
+    return request({
+        url: '/api/character-library/extract',
+        method: 'post',
+        data: { scriptId },
+        timeout: 60000, // 1分钟超时，AI分析需要时间
+    })
+}
+
+/**
+ * 批量保存角色到角色库
+ */
+export function batchSaveCharacters(characters: any[], userId: number) {
+    return request({
+        url: '/api/character-library/batch-save',
+        method: 'post',
+        data: { characters, userId },
+    })
+}
