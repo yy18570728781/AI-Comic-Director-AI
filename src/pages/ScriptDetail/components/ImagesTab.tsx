@@ -313,55 +313,57 @@ export default function ImagesTab({
           {/* 操作按钮区域 */}
           <div
             style={{
-              padding: '12px 16px',
+              padding: '12px',
               borderTop: '1px solid #f0f0f0',
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {/* 主要操作 - 生成视频按钮 */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <Button
-                style={{ flex: 1 }}
-                type="primary"
-                icon={<VideoCameraOutlined />}
-                onClick={() => handleOpenVideoModal(shot)}
-                loading={generatingVideos.has(shot.id)}
-                disabled={!shot.images?.some((img: any) => img.isFirstFrame)}
-              >
-                生成视频
-              </Button>
-            </div>
-
-            {/* 次要操作 - 小按钮 */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                justifyContent: 'space-between',
-              }}
+            <Button
+              type="primary"
+              size="middle"
+              icon={<VideoCameraOutlined />}
+              onClick={() => handleOpenVideoModal(shot)}
+              loading={generatingVideos.has(shot.id)}
+              disabled={!shot.images?.some((img: any) => img.isFirstFrame)}
             >
-              <Space size="small">
-                <Button
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => onEditShot(shot)}
-                >
-                  编辑
-                </Button>
-                {shot.images && shot.images.length > 1 && (
-                  <Button size="small" icon={<PictureOutlined />}>
-                    {shot.images.length} 张
-                  </Button>
-                )}
-              </Space>
-              <Popconfirm
-                title="确定删除这个分镜吗？"
-                onConfirm={() => onDeleteShot(shot.id)}
+              生成视频
+            </Button>
+            <Button
+              type="default"
+              size="middle"
+              icon={<EditOutlined />}
+              onClick={() => onEditShot(shot)}
+              style={{ color: '#1890ff', borderColor: '#1890ff' }}
+            >
+              编辑
+            </Button>
+            {shot.images && shot.images.length > 1 && (
+              <Button
+                type="default"
+                size="middle"
+                icon={<PictureOutlined />}
+                style={{ color: '#52c41a', borderColor: '#52c41a' }}
               >
-                <Button size="small" danger icon={<DeleteOutlined />}>
-                  删除
-                </Button>
-              </Popconfirm>
-            </div>
+                {shot.images.length} 张
+              </Button>
+            )}
+            <Popconfirm
+              title="确定删除这个分镜吗？"
+              onConfirm={() => onDeleteShot(shot.id)}
+            >
+              <Button
+                type="primary"
+                danger
+                size="middle"
+                icon={<DeleteOutlined />}
+              >
+                删除
+              </Button>
+            </Popconfirm>
           </div>
         </Card>
       ))}
