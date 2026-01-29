@@ -394,7 +394,7 @@ export default function VideoGenerateModal({
               max={15}
               style={{ width: '100%' }}
               placeholder="输入视频时长（1-15秒）"
-              addonAfter="秒"
+              suffix="秒"
             />
           </Form.Item>
 
