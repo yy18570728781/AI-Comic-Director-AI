@@ -336,7 +336,11 @@ function ImageToVideo() {
                     addonAfter="秒"
                   />
                   <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
-                    建议时长：3-10秒，最长不超过15秒
+                    {modelConfig?.durations && modelConfig.durations.length > 0 ? (
+                      <>💡 建议时长：{modelConfig.durations.join('、')}秒</>
+                    ) : (
+                      <>💡 建议时长：3-10秒，最长不超过15秒</>
+                    )}
                   </div>
                 </div>
 

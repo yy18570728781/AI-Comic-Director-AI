@@ -92,7 +92,7 @@ export default function VideoGenerateModal({
     if (visible && shot) {
       form.setFieldsValue({
         videoPrompt: shot.videoPrompt || shot.visualDescription || '',
-        duration: 5,
+        duration: shot.duration || 5, // 使用后端返回的duration值
       });
     }
   }, [visible, shot, form]);
@@ -377,6 +377,17 @@ export default function VideoGenerateModal({
             label="视频时长（秒）"
             name="duration"
             rules={[{ required: true, message: '请输入视频时长' }]}
+            extra={
+              modelConfig?.durations && modelConfig.durations.length > 0 ? (
+                <div style={{ color: '#999', fontSize: 12 }}>
+                  💡 建议时长：{modelConfig.durations.join('、')}秒
+                </div>
+              ) : (
+                <div style={{ color: '#999', fontSize: 12 }}>
+                  💡 建议时长：3-10秒，最长不超过15秒
+                </div>
+              )
+            }
           >
             <InputNumber
               min={1}
@@ -387,23 +398,6 @@ export default function VideoGenerateModal({
             />
           </Form.Item>
 
-          {/* 画面比例选择 */}
-          {modelConfig?.aspectRatios && modelConfig.aspectRatios.length > 0 && (
-            <Form.Item label="画面比例">
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {modelConfig.aspectRatios.map((ratio) => (
-                  <Tag
-                    key={ratio}
-                    color={aspectRatio === ratio ? 'blue' : 'default'}
-                    onClick={() => setAspectRatio(ratio)}
-                    style={{ cursor: 'pointer', padding: '4px 12px' }}
-                  >
-                    {ratio === '16:9' ? '16:9 (电脑)' : ratio === '9:16' ? '9:16 (手机)' : ratio}
-                  </Tag>
-                ))}
-              </div>
-            </Form.Item>
-          )}
         </div>
 
         {/* 生成配置区域 */}
@@ -426,6 +420,25 @@ export default function VideoGenerateModal({
           >
             ⚙️ 生成配置（仅用于本次生成）
           </div>
+
+          {/* 画面比例选择 */}
+          {modelConfig?.aspectRatios && modelConfig.aspectRatios.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 8, fontWeight: 500 }}>画面比例</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {modelConfig.aspectRatios.map((ratio) => (
+                  <Tag
+                    key={ratio}
+                    color={aspectRatio === ratio ? 'blue' : 'default'}
+                    onClick={() => setAspectRatio(ratio)}
+                    style={{ cursor: 'pointer', padding: '4px 12px' }}
+                  >
+                    {ratio === '16:9' ? '16:9 (电脑)' : ratio === '9:16' ? '9:16 (手机)' : ratio}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div
