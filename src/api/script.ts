@@ -135,3 +135,29 @@ export function batchSaveCharacters(characters: any[], userId: number) {
         data: { characters, userId },
     })
 }
+
+/**
+ * 获取角色列表
+ */
+export function getCharacterList(params: {
+    userId?: number;
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+}) {
+    return request({
+        url: '/api/character-library/list',
+        method: 'get',
+        params,
+    })
+}
+
+/**
+ * 获取角色详情
+ */
+export function getCharacterDetail(id: number) {
+    return request({
+        url: `/api/character-library/${id}`,
+        method: 'get',
+    })
+}
