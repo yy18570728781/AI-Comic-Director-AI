@@ -3,6 +3,147 @@ import { request } from './request'
 // AI 创作相关接口
 
 /**
+ * 生成小说（流式）
+ */
+export async function generateNovelStream(
+    data: {
+        theme: string
+        outline?: string
+        length?: number
+    },
+    onChunk: (content: string) => void,
+    onError?: (error: string) => void,
+    onDone?: () => void
+) {
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001';
+
+    try {
+        const response = await fetch(`${apiBaseURL}/api/ai/novel/generate-stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            throw new Error('请求失败');
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+            throw new Error('无法读取响应流');
+        }
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.substring(6);
+
+                    if (data === '[DONE]') {
+                        onDone?.();
+                        break;
+                    }
+
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.content) {
+                            onChunk(json.content);
+                        } else if (json.error) {
+                            onError?.(json.error);
+                        }
+                    } catch (e) {
+                        // 忽略解析错误
+                    }
+                }
+            }
+        }
+    } catch (error: any) {
+        onError?.(error.message || '生成失败');
+        throw error;
+    }
+}
+
+/**
+ * 生成剧本（流式）
+ */
+export async function generateScriptStream(
+    data: {
+        novel: string
+        style?: string
+    },
+    onChunk: (content: string) => void,
+    onError?: (error: string) => void,
+    onDone?: () => void
+) {
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001';
+
+    try {
+        const response = await fetch(`${apiBaseURL}/api/ai/script/generate-stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            throw new Error('请求失败');
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+            throw new Error('无法读取响应流');
+        }
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.substring(6);
+
+                    if (data === '[DONE]') {
+                        onDone?.();
+                        break;
+                    }
+
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.content) {
+                            onChunk(json.content);
+                        } else if (json.error) {
+                            onError?.(json.error);
+                        }
+                    } catch (e) {
+                        // 忽略解析错误
+                    }
+                }
+            }
+        }
+    } catch (error: any) {
+        onError?.(error.message || '生成失败');
+        throw error;
+    }
+}
+
+/**
  * 生成小说
  */
 export function generateNovel(data: {

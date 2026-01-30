@@ -11,6 +11,7 @@ import {
 } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
+import { generateNovelStream, generateScriptStream } from '@/api/ai';
 import { useAICreationStore } from '@/stores/useAICreationStore';
 import { useUserStore } from '@/stores/useUserStore';
 
@@ -70,67 +71,29 @@ function AICreation() {
     setNovelLoading(true);
     setNovelResult(''); // 清空之前的结果
 
+    let accumulatedText = '';
+
     try {
-      const apiBaseURL = import.meta.env.VITE_API_BASE_URL
-      const response = await fetch(
-        `${apiBaseURL}/api/ai/novel/generate-stream`,
+      await generateNovelStream(
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            theme: values.theme,
-            outline: values.outline,
-            length: values.length || 2000,
-          }),
+          theme: values.theme,
+          outline: values.outline,
+          length: values.length || 2000,
+        },
+        // onChunk: 处理每个数据块
+        (content: string) => {
+          accumulatedText += content;
+          setNovelResult(accumulatedText);
+        },
+        // onError: 处理错误
+        (error: string) => {
+          message.error(error);
+        },
+        // onDone: 完成时的回调
+        () => {
+          message.success('小说生成成功');
         },
       );
-
-      if (!response.ok) {
-        throw new Error('请求失败');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('无法读取响应流');
-      }
-
-      let accumulatedText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
-
-            if (data === '[DONE]') {
-              message.success('小说生成成功');
-              break;
-            }
-
-            try {
-              const json = JSON.parse(data);
-              if (json.content) {
-                accumulatedText += json.content;
-                setNovelResult(accumulatedText); // 保存到 store
-              } else if (json.error) {
-                message.error(json.error);
-              }
-            } catch (e) {
-              // 忽略解析错误
-            }
-          }
-        }
-      }
     } catch (error: any) {
       message.error(error.message || '生成失败');
       console.error(error);
@@ -141,8 +104,14 @@ function AICreation() {
 
   // 复制小说
   const handleCopyNovel = () => {
-    navigator.clipboard.writeText(novelResult);
-    message.success('已复制到剪贴板');
+    navigator.clipboard
+      .writeText(novelResult)
+      .then(() => {
+        message.success('小说内容已复制到剪贴板');
+      })
+      .catch(() => {
+        message.error('复制失败，请手动复制');
+      });
   };
 
   // 生成剧本（流式）
@@ -155,66 +124,28 @@ function AICreation() {
     setScriptLoading(true);
     setScriptResult(''); // 清空之前的结果
 
+    let accumulatedText = '';
+
     try {
-      const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001';
-      const response = await fetch(
-        `${apiBaseURL}/api/ai/script/generate-stream`,
+      await generateScriptStream(
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            novel: values.novel,
-            style: values.style,
-          }),
+          novel: values.novel,
+          style: values.style,
+        },
+        // onChunk: 处理每个数据块
+        (content: string) => {
+          accumulatedText += content;
+          setScriptResult(accumulatedText);
+        },
+        // onError: 处理错误
+        (error: string) => {
+          message.error(error);
+        },
+        // onDone: 完成时的回调
+        () => {
+          message.success('剧本生成成功');
         },
       );
-
-      if (!response.ok) {
-        throw new Error('请求失败');
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('无法读取响应流');
-      }
-
-      let accumulatedText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
-
-            if (data === '[DONE]') {
-              message.success('剧本生成成功');
-              break;
-            }
-
-            try {
-              const json = JSON.parse(data);
-              if (json.content) {
-                accumulatedText += json.content;
-                setScriptResult(accumulatedText); // 保存到 store
-              } else if (json.error) {
-                message.error(json.error);
-              }
-            } catch (e) {
-              // 忽略解析错误
-            }
-          }
-        }
-      }
     } catch (error: any) {
       message.error(error.message || '生成失败');
       console.error(error);
@@ -225,8 +156,14 @@ function AICreation() {
 
   // 复制剧本
   const handleCopyScript = () => {
-    navigator.clipboard.writeText(scriptResult);
-    message.success('已复制到剪贴板');
+    navigator.clipboard
+      .writeText(scriptResult)
+      .then(() => {
+        message.success('剧本内容已复制到剪贴板');
+      })
+      .catch(() => {
+        message.error('复制失败，请手动复制');
+      });
   };
 
   const tabItems = [
