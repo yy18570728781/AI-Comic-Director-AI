@@ -69,6 +69,32 @@ function ScriptManagement() {
     }
   }, [page, keyword, currentUser]);
 
+  // 检查是否有待创建的剧本（从AI创作页面跳转过来）
+  useEffect(() => {
+    const pendingContent = localStorage.getItem('pendingScriptContent');
+    const pendingStyle = localStorage.getItem('pendingScriptStyle');
+    const pendingTitle = localStorage.getItem('pendingScriptTitle');
+
+    if (pendingContent) {
+      // 打开创建弹窗
+      setCreateModalVisible(true);
+
+      // 填充表单
+      form.setFieldsValue({
+        title: pendingTitle || '',
+        content: pendingContent,
+        style: pendingStyle || '',
+      });
+
+      // 清除 localStorage
+      localStorage.removeItem('pendingScriptContent');
+      localStorage.removeItem('pendingScriptStyle');
+      localStorage.removeItem('pendingScriptTitle');
+
+      message.info('已自动填充剧本标题和内容，请补充简介');
+    }
+  }, [form]);
+
   // 创建剧本
   const handleCreate = async (values: any) => {
     if (!currentUser) {

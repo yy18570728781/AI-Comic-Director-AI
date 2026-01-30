@@ -9,7 +9,12 @@ import {
   Select,
   message,
 } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import {
+  CopyOutlined,
+  ArrowRightOutlined,
+  FileAddOutlined,
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 
 import { generateNovelStream, generateScriptStream } from '@/api/ai';
 import { useAICreationStore } from '@/stores/useAICreationStore';
@@ -18,6 +23,7 @@ import { useUserStore } from '@/stores/useUserStore';
 const { TextArea } = Input;
 
 function AICreation() {
+  const navigate = useNavigate();
   const { currentUser } = useUserStore();
   const [novelForm] = Form.useForm();
   const [scriptForm] = Form.useForm();
@@ -166,6 +172,51 @@ function AICreation() {
       });
   };
 
+  // 将小说转为剧本（切换标签页并填充）
+  const handleNovelToScript = () => {
+    if (!novelResult) {
+      message.warning('请先生成小说');
+      return;
+    }
+
+    // 切换到剧本生成标签页
+    setActiveTab('script');
+
+    // 填充小说内容到剧本表单
+    setScriptNovel(novelResult);
+    scriptForm.setFieldsValue({
+      novel: novelResult,
+    });
+
+    message.success('已切换到剧本生成，小说内容已自动填充');
+  };
+
+  // 创建剧本（跳转到剧本管理并打开创建弹窗）
+  const handleCreateScript = () => {
+    if (!scriptResult) {
+      message.warning('请先生成剧本');
+      return;
+    }
+
+    // 获取表单的实际值
+    const formValues = scriptForm.getFieldsValue();
+    const currentStyle = formValues.style || scriptStyle;
+
+    // 获取小说主题作为剧本标题
+    const novelFormValues = novelForm.getFieldsValue();
+    const novelThemeTitle = novelFormValues.theme || novelTheme;
+
+    // 将剧本内容和相关信息保存到 localStorage
+    localStorage.setItem('pendingScriptContent', scriptResult);
+    localStorage.setItem('pendingScriptStyle', currentStyle);
+    localStorage.setItem('pendingScriptTitle', novelThemeTitle);
+
+    // 跳转到剧本管理页面
+    navigate('/script-management');
+
+    message.success('正在跳转到剧本管理...');
+  };
+
   const tabItems = [
     {
       key: 'novel',
@@ -205,16 +256,27 @@ function AICreation() {
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={novelLoading}>
-                生成小说
+                {novelResult ? '重新生成小说' : '生成小说'}
               </Button>
               {novelResult && (
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={handleCopyNovel}
-                  style={{ marginLeft: 8 }}
-                >
-                  复制小说
-                </Button>
+                <>
+                  <Button
+                    icon={<CopyOutlined />}
+                    onClick={handleCopyNovel}
+                    style={{ marginLeft: 8 }}
+                  >
+                    复制小说
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<ArrowRightOutlined />}
+                    onClick={handleNovelToScript}
+                    style={{ marginLeft: 8 }}
+                    disabled={novelLoading}
+                  >
+                    生成剧本
+                  </Button>
+                </>
               )}
             </Form.Item>
           </Form>
@@ -267,16 +329,27 @@ function AICreation() {
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={scriptLoading}>
-                生成剧本
+                {scriptResult ? '重新生成剧本' : '生成剧本'}
               </Button>
               {scriptResult && (
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={handleCopyScript}
-                  style={{ marginLeft: 8 }}
-                >
-                  复制剧本
-                </Button>
+                <>
+                  <Button
+                    icon={<CopyOutlined />}
+                    onClick={handleCopyScript}
+                    style={{ marginLeft: 8 }}
+                  >
+                    复制剧本
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<FileAddOutlined />}
+                    onClick={handleCreateScript}
+                    style={{ marginLeft: 8 }}
+                    disabled={scriptLoading}
+                  >
+                    创建剧本
+                  </Button>
+                </>
               )}
             </Form.Item>
           </Form>
