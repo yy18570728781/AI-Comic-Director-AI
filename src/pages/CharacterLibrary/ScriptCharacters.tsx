@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Table, Space, Card, Descriptions, message, Modal, Spin } from 'antd';
 import { ArrowLeftOutlined, UserAddOutlined, ReloadOutlined } from '@ant-design/icons';
-import { extractCharacters, batchSaveCharacters } from '../../api/script';
+import { extractCharacters, batchSaveCharacters, getCharacterList } from '../../api/script';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Script } from '../../stores/useScriptStore';
+import { useUserStore } from '../../stores/useUserStore';
 import {
   ExtractedCharacter,
+  SavedCharacter,
   characterTableColumns,
+  savedCharacterTableColumns,
   characterTableConfig,
+  savedCharacterTableConfig,
   getCharacterExpandedContent,
   getScriptDescriptionItems,
   emptyStates,
@@ -21,11 +25,41 @@ function ScriptCharacters() {
   const { scriptId } = useParams<{ scriptId: string }>();
   const location = useLocation();
   const script = location.state?.script as Script;
+  const { getDefaultUserId } = useUserStore();
+
+  // 获取已保存的角色列表
+  const fetchSavedCharacters = async () => {
+    setLoadingSaved(true);
+    try {
+      const response = await getCharacterList({
+        userId: getDefaultUserId(),
+        page: 1,
+        pageSize: 100,
+      });
+      if (response.success) {
+        setSavedCharacters(response.data.list || []);
+      } else {
+        message.error('获取已保存角色失败');
+      }
+    } catch (error: any) {
+      console.error('获取已保存角色失败:', error);
+      message.error('获取已保存角色失败');
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  // 页面加载时获取已保存的角色
+  useEffect(() => {
+    fetchSavedCharacters();
+  }, []);
 
   const [extractedCharacters, setExtractedCharacters] = useState<ExtractedCharacter[]>([]);
+  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [hasExtracted, setHasExtracted] = useState(false);
 
   // 提取角色信息
@@ -68,9 +102,11 @@ function ScriptCharacters() {
 
     setSaving(true);
     try {
-      const response = await batchSaveCharacters(charactersToSave, 1); // TODO: 使用真实的userId
+      const response = await batchSaveCharacters(charactersToSave, getDefaultUserId());
       if (response.success) {
         message.success(messages.saveSuccess(charactersToSave.length));
+        // 刷新已保存角色列表
+        fetchSavedCharacters();
         // 保存成功后可以选择是否清空当前提取结果
         Modal.confirm({
           ...confirmDialogs.saveSuccess,
@@ -129,11 +165,39 @@ function ScriptCharacters() {
         </Card>
       )}
 
+      {/* 已保存角色列表 */}
+      <Card style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h3 style={{ margin: 0 }}>已保存角色</h3>
+            <p style={{ margin: '4px 0 0 0', color: '#666' }}>
+              当前用户已保存到角色库的所有角色
+            </p>
+          </div>
+          <Button
+            onClick={fetchSavedCharacters}
+            loading={loadingSaved}
+          >
+            {buttonTexts.refreshSaved}
+          </Button>
+        </div>
+
+        <Table
+          dataSource={savedCharacters}
+          columns={savedCharacterTableColumns}
+          {...savedCharacterTableConfig}
+          loading={loadingSaved}
+          locale={{
+            emptyText: '暂无已保存的角色',
+          }}
+        />
+      </Card>
+
       {/* 操作区域 */}
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <h3 style={{ margin: 0 }}>角色信息</h3>
+            <h3 style={{ margin: 0 }}>提取新角色</h3>
             <p style={{ margin: '4px 0 0 0', color: '#666' }}>
               从剧本内容和分镜数据中提取角色信息
             </p>

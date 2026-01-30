@@ -13,6 +13,52 @@ export interface ExtractedCharacter {
   imagePrompt?: string;
 }
 
+export interface SavedCharacter {
+  id: number;
+  name: string;
+  characterId: string;
+  description: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 已保存角色列表表格配置
+ */
+export const savedCharacterTableColumns: TableColumnsType<SavedCharacter> = [
+  {
+    title: '角色名称',
+    dataIndex: 'name',
+    key: 'name',
+    render: (name: string) => React.createElement('strong', null, name),
+  },
+  {
+    title: '角色ID',
+    dataIndex: 'characterId',
+    key: 'characterId',
+    width: 120,
+    render: (characterId: string) => React.createElement(Tag, {
+      color: 'blue'
+    }, characterId),
+  },
+  {
+    title: '描述',
+    dataIndex: 'description',
+    key: 'description',
+    ellipsis: true,
+  },
+  {
+    title: '创建时间',
+    dataIndex: 'createdAt',
+    key: 'createdAt',
+    width: 120,
+    render: (date: string) => new Date(date).toLocaleDateString(),
+  },
+];
+
 /**
  * 角色列表表格配置
  */
@@ -118,6 +164,19 @@ export const characterTableConfig = {
 };
 
 /**
+ * 已保存角色表格配置
+ */
+export const savedCharacterTableConfig = {
+  rowKey: 'id',
+  size: 'small' as const,
+  pagination: {
+    pageSize: 10,
+    showSizeChanger: false,
+    showQuickJumper: false,
+  },
+};
+
+/**
  * 剧本信息描述配置
  */
 export const getScriptDescriptionItems = (script: any): DescriptionsProps['items'] => [
@@ -180,6 +239,7 @@ export const buttonTexts = {
   reExtract: '重新提取',
   save: '保存选中角色',
   refresh: '刷新',
+  refreshSaved: '刷新已保存角色',
 };
 
 /**
