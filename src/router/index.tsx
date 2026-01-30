@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import AuthGuard from '@/components/AuthGuard';
+import Login from '@/pages/Login';
 import AICreation from '@/pages/AICreation';
 import ScriptManagement from '@/pages/ScriptManagement';
 import ScriptDetail from '@/pages/ScriptDetail';
@@ -13,7 +15,15 @@ import ImageToImage from '@/pages/ImageToImage';
 function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      {/* 登录页面 - 不需要认证 */}
+      <Route path="/login" element={<Login />} />
+      
+      {/* 主应用路由 - 需要认证 */}
+      <Route path="/" element={
+        <AuthGuard>
+          <Layout />
+        </AuthGuard>
+      }>
         <Route index element={<Navigate to="/ai-creation" replace />} />
         <Route path="ai-creation" element={<AICreation />} />
         <Route path="script-management" element={<ScriptManagement />} />
