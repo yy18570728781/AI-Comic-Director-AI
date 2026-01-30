@@ -5,6 +5,7 @@ import ScriptManagement from '@/pages/ScriptManagement';
 import ScriptDetail from '@/pages/ScriptDetail';
 import ResourceLibrary from '@/pages/ResourceLibrary';
 import CharacterLibrary from '@/pages/CharacterLibrary';
+import ScriptCharacters from '@/pages/CharacterLibrary/ScriptCharacters';
 import TeamSpace from '@/pages/TeamSpace';
 import ImageToVideo from '@/pages/ImageToVideo';
 import ImageToImage from '@/pages/ImageToImage';
@@ -21,6 +22,7 @@ function AppRouter() {
         <Route path="image-to-video" element={<ImageToVideo />} />
         <Route path="image-to-image" element={<ImageToImage />} />
         <Route path="character-library" element={<CharacterLibrary />} />
+        <Route path="character-library/script/:scriptId" element={<ScriptCharacters />} />
         <Route path="team-space" element={<TeamSpace />} />
       </Route>
     </Routes>
