@@ -211,134 +211,136 @@ export default function ShotsTab({
                     overflowX: 'hidden',
                   }}
                 >
-                  {shot.images.map((img, idx) => (
-                    <div
-                      key={img.id || idx}
-                      style={{
-                        position: 'relative',
-                        width: 150,
-                        height: 150,
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => {
-                        Modal.info({
-                          title: `图片 ${idx + 1}`,
-                          content: (
-                            <div>
-                              <img
-                                src={img.url}
-                                alt=""
-                                style={{
-                                  width: '100%',
-                                  maxHeight: 400,
-                                  objectFit: 'contain',
-                                  marginBottom: 16,
-                                }}
-                              />
-                              <Space>
-                                <Button
-                                  type="primary"
-                                  icon={<StarOutlined />}
-                                  style={{
-                                    background: '#ffc107',
-                                    borderColor: '#ffc107',
-                                    color: '#000',
-                                  }}
-                                  onClick={() => {
-                                    onSetFirstFrame(shot.id, img.id);
-                                    Modal.destroyAll();
-                                  }}
-                                >
-                                  设为首帧
-                                </Button>
-                                <Button
-                                  type="primary"
-                                  icon={<StarOutlined />}
-                                  style={{
-                                    background: '#1890ff',
-                                    borderColor: '#1890ff',
-                                  }}
-                                  onClick={() => {
-                                    onSetLastFrame(shot.id, img.id);
-                                    Modal.destroyAll();
-                                  }}
-                                >
-                                  设为尾帧
-                                </Button>
-                                <Popconfirm
-                                  title="确定删除这张图片吗？"
-                                  onConfirm={() => {
-                                    onDeleteImage(img.id);
-                                    Modal.destroyAll();
-                                  }}
-                                >
-                                  <Button danger icon={<DeleteOutlined />}>
-                                    删除
-                                  </Button>
-                                </Popconfirm>
-                              </Space>
-                            </div>
-                          ),
-                          width: 700,
-                          okText: '关闭',
-                        });
-                      }}
-                    >
-                      <Image
-                        src={img.url}
-                        alt={`图片 ${idx + 1}`}
+                  {(shot.images || [])
+                    .filter((img) => img && img.url)
+                    .map((img, idx) => (
+                      <div
+                        key={img.id || idx}
                         style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          borderRadius: 4,
+                          position: 'relative',
+                          width: 150,
+                          height: 150,
+                          cursor: 'pointer',
                         }}
-                        preview={false}
-                      />
-                      {/* 首帧标签 */}
-                      {img.isFirstFrame && (
-                        <div
+                        onClick={() => {
+                          Modal.info({
+                            title: `图片 ${idx + 1}`,
+                            content: (
+                              <div>
+                                <img
+                                  src={img.url}
+                                  alt=""
+                                  style={{
+                                    width: '100%',
+                                    maxHeight: 400,
+                                    objectFit: 'contain',
+                                    marginBottom: 16,
+                                  }}
+                                />
+                                <Space>
+                                  <Button
+                                    type="primary"
+                                    icon={<StarOutlined />}
+                                    style={{
+                                      background: '#ffc107',
+                                      borderColor: '#ffc107',
+                                      color: '#000',
+                                    }}
+                                    onClick={() => {
+                                      onSetFirstFrame(shot.id, img.id);
+                                      Modal.destroyAll();
+                                    }}
+                                  >
+                                    设为首帧
+                                  </Button>
+                                  <Button
+                                    type="primary"
+                                    icon={<StarOutlined />}
+                                    style={{
+                                      background: '#1890ff',
+                                      borderColor: '#1890ff',
+                                    }}
+                                    onClick={() => {
+                                      onSetLastFrame(shot.id, img.id);
+                                      Modal.destroyAll();
+                                    }}
+                                  >
+                                    设为尾帧
+                                  </Button>
+                                  <Popconfirm
+                                    title="确定删除这张图片吗？"
+                                    onConfirm={() => {
+                                      onDeleteImage(img.id);
+                                      Modal.destroyAll();
+                                    }}
+                                  >
+                                    <Button danger icon={<DeleteOutlined />}>
+                                      删除
+                                    </Button>
+                                  </Popconfirm>
+                                </Space>
+                              </div>
+                            ),
+                            width: 700,
+                            okText: '关闭',
+                          });
+                        }}
+                      >
+                        <Image
+                          src={img.url}
+                          alt={`图片 ${idx + 1}`}
                           style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            background: 'rgba(250, 173, 20, 0.85)',
-                            backdropFilter: 'blur(8px)',
-                            color: '#fff',
-                            padding: '2px 8px',
-                            borderRadius: '0 4px 0 8px',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                            zIndex: 10,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: 4,
                           }}
-                        >
-                          首帧
-                        </div>
-                      )}
-                      {/* 尾帧标签 */}
-                      {img.isLastFrame && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: img.isFirstFrame ? 24 : 0,
-                            right: 0,
-                            background: 'rgba(24, 144, 255, 0.85)',
-                            backdropFilter: 'blur(8px)',
-                            color: '#fff',
-                            padding: '2px 8px',
-                            borderRadius: '0 4px 0 8px',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                            zIndex: 10,
-                          }}
-                        >
-                          尾帧
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                          preview={false}
+                        />
+                        {/* 首帧标签 */}
+                        {img.isFirstFrame && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              background: 'rgba(250, 173, 20, 0.85)',
+                              backdropFilter: 'blur(8px)',
+                              color: '#fff',
+                              padding: '2px 8px',
+                              borderRadius: '0 4px 0 8px',
+                              fontSize: 12,
+                              fontWeight: 500,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                              zIndex: 10,
+                            }}
+                          >
+                            首帧
+                          </div>
+                        )}
+                        {/* 尾帧标签 */}
+                        {img.isLastFrame && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: img.isFirstFrame ? 24 : 0,
+                              right: 0,
+                              background: 'rgba(24, 144, 255, 0.85)',
+                              backdropFilter: 'blur(8px)',
+                              color: '#fff',
+                              padding: '2px 8px',
+                              borderRadius: '0 4px 0 8px',
+                              fontSize: 12,
+                              fontWeight: 500,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                              zIndex: 10,
+                            }}
+                          >
+                            尾帧
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
             )}

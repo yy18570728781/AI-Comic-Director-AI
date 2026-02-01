@@ -97,68 +97,72 @@ export default function VideosTab({ shots }: VideosTabProps) {
             <strong>生成的视频：</strong>
             <div style={{ marginTop: 8 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
-                {shot.videos!.map((video, idx) => (
-                  <div key={idx} style={{ marginBottom: 16 }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <Tag color="green">视频 #{idx + 1}</Tag>
-                      {video?.model && <Tag>{video.model}</Tag>}
-                      {video?.createdAt && (
-                        <span
+                {(shot.videos || [])
+                  .filter((video) => video && video.url)
+                  .map((video, idx) => (
+                    <div key={idx} style={{ marginBottom: 16 }}>
+                      <div style={{ marginBottom: 8 }}>
+                        <Tag color="green">视频 #{idx + 1}</Tag>
+                        {video?.model && <Tag>{video.model}</Tag>}
+                        {video?.createdAt && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              color: '#999',
+                              marginLeft: 8,
+                            }}
+                          >
+                            {new Date(video.createdAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      {video?.url ? (
+                        <video
+                          width={400}
+                          controls
                           style={{
-                            fontSize: 12,
-                            color: '#999',
-                            marginLeft: 8,
+                            borderRadius: '4px',
+                            border: '1px solid #f0f0f0',
                           }}
                         >
-                          {new Date(video.createdAt).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    {video?.url ? (
-                      <video
-                        width={400}
-                        controls
-                        style={{
-                          borderRadius: '4px',
-                          border: '1px solid #f0f0f0',
-                        }}
-                      >
-                        <source src={video.url} type="video/mp4" />
-                        您的浏览器不支持视频播放
-                      </video>
-                    ) : (
-                      <div
-                        style={{
-                          width: 400,
-                          height: 225,
-                          backgroundColor: '#f5f5f5',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '4px',
-                          border: '1px solid #f0f0f0',
-                          color: '#999',
-                        }}
-                      >
-                        视频URL缺失
-                      </div>
-                    )}
-                    <div style={{ marginTop: 8 }}>
-                      <Space>
-                        <Button
-                          size="small"
-                          disabled={!video?.url}
-                          onClick={() => video?.url && window.open(video.url, '_blank')}
+                          <source src={video.url} type="video/mp4" />
+                          您的浏览器不支持视频播放
+                        </video>
+                      ) : (
+                        <div
+                          style={{
+                            width: 400,
+                            height: 225,
+                            backgroundColor: '#f5f5f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '4px',
+                            border: '1px solid #f0f0f0',
+                            color: '#999',
+                          }}
                         >
-                          下载视频
-                        </Button>
-                        <Button size="small" danger icon={<DeleteOutlined />}>
-                          删除
-                        </Button>
-                      </Space>
+                          视频URL缺失
+                        </div>
+                      )}
+                      <div style={{ marginTop: 8 }}>
+                        <Space>
+                          <Button
+                            size="small"
+                            disabled={!video?.url}
+                            onClick={() =>
+                              video?.url && window.open(video.url, '_blank')
+                            }
+                          >
+                            下载视频
+                          </Button>
+                          <Button size="small" danger icon={<DeleteOutlined />}>
+                            删除
+                          </Button>
+                        </Space>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </Space>
             </div>
           </div>

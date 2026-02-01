@@ -168,9 +168,11 @@ export default function ImagesTab({
               >
                 首帧
               </Tag>
-              {shot.images?.find((img: any) => img.isFirstFrame) ? (
+              {shot.images?.find((img: any) => img && img.isFirstFrame) ? (
                 <Image
-                  src={shot.images.find((img: any) => img.isFirstFrame)?.url}
+                  src={
+                    shot.images.find((img: any) => img && img.isFirstFrame)?.url
+                  }
                   alt="首帧"
                   style={{
                     width: '100%',
@@ -210,9 +212,11 @@ export default function ImagesTab({
               >
                 尾帧
               </Tag>
-              {shot.images?.find((img: any) => img.isLastFrame) ? (
+              {shot.images?.find((img: any) => img && img.isLastFrame) ? (
                 <Image
-                  src={shot.images.find((img: any) => img.isLastFrame)?.url}
+                  src={
+                    shot.images.find((img: any) => img && img.isLastFrame)?.url
+                  }
                   alt="尾帧"
                   style={{
                     width: '100%',
@@ -328,7 +332,9 @@ export default function ImagesTab({
               icon={<VideoCameraOutlined />}
               onClick={() => handleOpenVideoModal(shot)}
               loading={generatingVideos.has(shot.id)}
-              disabled={!shot.images?.some((img: any) => img.isFirstFrame)}
+              disabled={
+                !shot.images?.some((img: any) => img && img.isFirstFrame)
+              }
             >
               生成视频
             </Button>
