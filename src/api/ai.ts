@@ -204,9 +204,24 @@ export function extractCharactersAndScenes(data: {
 }
 
 /**
- * 优化图像提示词
+ * 优化图像提示词（保持中文）
  */
 export function optimizeImagePrompt(data: {
+    prompt: string
+    style?: string
+    provider?: string
+}) {
+    return request({
+        url: '/api/ai/prompt/optimize/image-chinese',
+        method: 'post',
+        data,
+    })
+}
+
+/**
+ * 优化图像提示词（转换为英文）
+ */
+export function optimizeImagePromptToEnglish(data: {
     prompt: string
     style?: string
     provider?: string

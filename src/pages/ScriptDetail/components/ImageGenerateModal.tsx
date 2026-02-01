@@ -1,7 +1,7 @@
 import { Modal, Form, Input, Select, Button, message } from 'antd';
 import { ThunderboltOutlined, PictureOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { optimizeImagePrompt } from '@/api/image';
+import { optimizeImagePrompt } from '@/api/ai';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { useModelStore } from '@/stores/useModelStore';
 
@@ -60,12 +60,14 @@ export default function ImageGenerateModal({
 
     setOptimizing(true);
     try {
-      const res = await optimizeImagePrompt(imagePrompt);
+      const res = await optimizeImagePrompt({
+        prompt: imagePrompt,
+      });
 
-      if (res.data?.optimizedPrompt) {
+      if (res.data?.optimized) {
         // 将优化后的提示词填入 imagePrompt 字段
         form.setFieldsValue({
-          imagePrompt: res.data.optimizedPrompt,
+          imagePrompt: res.data.optimized,
         });
         message.success('AI 优化完成！');
       } else {

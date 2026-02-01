@@ -66,18 +66,6 @@ export function generateShotImage(shotId: number, data: {
 }
 
 /**
- * AI 优化图像提示词
- */
-export function optimizeImagePrompt(prompt: string) {
-  return request({
-    url: '/api/ai/image/optimize-prompt',
-    method: 'post',
-    data: { prompt },
-    timeout: 30000,
-  })
-}
-
-/**
  * 多图融合
  * 
  * 后端立即返回 taskId，前端通过 batchGetImageStatus 轮询状态
