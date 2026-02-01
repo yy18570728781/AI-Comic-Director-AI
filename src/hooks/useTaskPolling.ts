@@ -193,7 +193,7 @@ export function useQueueImagePolling(options?: {
                                 jobId: job.jobId,
                                 shotId: job.shotId,
                                 status: res.data.state,
-                                image: res.data.returnvalue?.image,
+                                image: res.data.result?.savedImage, // 修复：从 result.savedImage 获取图片
                                 error: res.data.failedReason,
                             };
                         }
@@ -285,7 +285,7 @@ export function useQueueVideoPolling(options?: {
                                 jobId: job.jobId,
                                 shotId: job.shotId,
                                 status: res.data.state,
-                                video: res.data.returnvalue?.video,
+                                video: res.data.result?.savedVideo, // 修复：从 result.savedVideo 获取视频
                                 error: res.data.failedReason,
                             };
                         }
