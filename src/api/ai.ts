@@ -429,3 +429,21 @@ export function getQueueStats(queueName?: 'image' | 'video' | 'storyboard') {
         method: 'get',
     })
 }
+
+/**
+ * 统一批量查询所有类型任务状态
+ * 
+ * 一次请求查询所有类型的任务，减少 HTTP 请求次数
+ */
+export function batchGetAllTaskStatus(data: {
+    tasks: Array<{
+        jobId: string | number;
+        type: 'image' | 'video';
+    }>;
+}) {
+    return request({
+        url: '/api/tasks/batch-status',
+        method: 'post',
+        data,
+    })
+}
