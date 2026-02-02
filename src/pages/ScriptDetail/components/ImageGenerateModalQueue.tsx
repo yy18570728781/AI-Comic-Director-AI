@@ -6,7 +6,8 @@ import {
 } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { optimizeImagePrompt, generateImageAsync } from '@/api/ai';
-import { useQueuePolling } from '@/hooks/useQueuePolling';
+import { useTaskStore } from '@/stores/useTaskStore';
+import { onTaskComplete } from '@/components/GlobalTaskPoller';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { useModelStore } from '@/stores/useModelStore';
 
@@ -25,7 +26,7 @@ interface ImageGenerateModalProps {
  * 改造要点：
  * 1. 调用异步接口 generateImageAsync
  * 2. 获取 jobId
- * 3. 使用 useQueuePolling 轮询查询状态
+ * 3. 使用全局 GlobalTaskPoller 轮询查询状态
  * 4. 显示生成进度
  */
 export default function ImageGenerateModalQueue({
@@ -40,28 +41,33 @@ export default function ImageGenerateModalQueue({
   const [optimizing, setOptimizing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [jobId, setJobId] = useState<string | number | null>(null);
+  const [jobState, setJobState] = useState<string>('');
 
   // 获取全局选择的图像模型
   const { imageModel } = useModelStore();
 
-  // 使用队列轮询 Hook
-  const { job, isPolling, error } = useQueuePolling({
-    queueName: 'image',
-    jobId: jobId || '',
-    enabled: !!jobId, // 只有当 jobId 存在时才启用轮询
-    onCompleted: (result) => {
-      message.success('图像生成完成！');
-      setGenerating(false);
-      setJobId(null);
-      onSuccess(result);
-      onCancel();
-    },
-    onFailed: (reason) => {
-      message.error(`图像生成失败：${reason}`);
-      setGenerating(false);
-      setJobId(null);
-    },
-  });
+  // 使用全局任务 store
+  const { addTask } = useTaskStore();
+
+  // 监听任务完成事件
+  useEffect(() => {
+    if (!jobId) return;
+
+    const unsubscribe = onTaskComplete((event) => {
+      if (event.jobId === jobId) {
+        message.success('图像生成完成！');
+        setGenerating(false);
+        setJobId(null);
+        setJobState('');
+        onSuccess(event.result);
+        onCancel();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [jobId, onSuccess, onCancel]);
 
   // 当弹窗打开时，初始化表单
   useEffect(() => {
@@ -125,8 +131,14 @@ export default function ImageGenerateModalQueue({
       });
 
       if (res.success && res.data?.jobId) {
-        // 获取 jobId，开始轮询
+        // 获取 jobId，添加到全局任务列表
         setJobId(res.data.jobId);
+        setJobState('waiting');
+        addTask({
+          jobId: res.data.jobId,
+          type: 'image',
+          shotId: shot.id,
+        });
         message.info('任务已提交到队列，正在生成中...');
       } else {
         throw new Error('提交任务失败');
@@ -140,9 +152,9 @@ export default function ImageGenerateModalQueue({
 
   // 获取任务状态文本
   const getStatusText = () => {
-    if (!job) return '准备中...';
+    if (!jobState) return '准备中...';
 
-    switch (job.state) {
+    switch (jobState) {
       case 'waiting':
         return '排队等待中...';
       case 'active':
@@ -228,39 +240,24 @@ export default function ImageGenerateModalQueue({
                 <LoadingOutlined style={{ marginRight: 8 }} />
                 {getStatusText()}
               </div>
-              {job && (
+              {jobId && (
                 <div style={{ fontSize: 12, color: '#666' }}>
                   任务ID: {jobId}
                   <br />
-                  状态: {job.state}
+                  状态: {jobState || 'waiting'}
                 </div>
               )}
               <Progress
                 percent={
-                  job?.state === 'completed'
+                  jobState === 'completed'
                     ? 100
-                    : job?.state === 'active'
+                    : jobState === 'active'
                       ? 50
                       : 10
                 }
-                status={job?.state === 'failed' ? 'exception' : 'active'}
+                status={jobState === 'failed' ? 'exception' : 'active'}
                 showInfo={false}
               />
-            </div>
-          )}
-
-          {error && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: 12,
-                background: '#fff2f0',
-                border: '1px solid #ffccc7',
-                borderRadius: 4,
-                color: '#ff4d4f',
-              }}
-            >
-              错误: {error}
             </div>
           )}
         </Form>
