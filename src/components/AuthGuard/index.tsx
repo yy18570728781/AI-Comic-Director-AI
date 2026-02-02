@@ -10,13 +10,14 @@ interface AuthGuardProps {
 
 function AuthGuard({ children }: AuthGuardProps) {
   const location = useLocation();
-  const { currentUser, isAuthenticated, setCurrentUser, logout } = useUserStore();
+  const { currentUser, isAuthenticated, setCurrentUser, logout } =
+    useUserStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         setLoading(false);
         return;
@@ -25,8 +26,8 @@ function AuthGuard({ children }: AuthGuardProps) {
       try {
         // 验证token有效性
         const response = await getCurrentUser();
-        if (response.success) {
-          setCurrentUser(response.data);
+        if (response?.data?.success) {
+          setCurrentUser(response.data.data);
         } else {
           // token无效，清除登录状态
           logout();
@@ -49,12 +50,14 @@ function AuthGuard({ children }: AuthGuardProps) {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
         <Spin size="large" />
       </div>
     );

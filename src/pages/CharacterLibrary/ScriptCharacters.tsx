@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table, Space, Card, Descriptions, message, Modal, Spin } from 'antd';
-import { ArrowLeftOutlined, UserAddOutlined, ReloadOutlined } from '@ant-design/icons';
-import { extractCharacters, batchSaveCharacters, getCharacterList } from '../../api/script';
+import {
+  Button,
+  Table,
+  Space,
+  Card,
+  Descriptions,
+  message,
+  Modal,
+  Spin,
+} from 'antd';
+import {
+  ArrowLeftOutlined,
+  UserAddOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import {
+  extractCharacters,
+  batchSaveCharacters,
+  getCharacterList,
+} from '../../api/script';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Script } from '../../stores/useScriptStore';
 import { useUserStore } from '../../stores/useUserStore';
@@ -59,7 +76,9 @@ function ScriptCharacters() {
     fetchSavedCharacters();
   }, []);
 
-  const [extractedCharacters, setExtractedCharacters] = useState<ExtractedCharacter[]>([]);
+  const [extractedCharacters, setExtractedCharacters] = useState<
+    ExtractedCharacter[]
+  >([]);
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -80,7 +99,9 @@ function ScriptCharacters() {
       if (response.success) {
         const characters = response.data.characters || [];
         setExtractedCharacters(characters);
-        setSelectedCharacters(characters.map((c: ExtractedCharacter) => c.name));
+        setSelectedCharacters(
+          characters.map((c: ExtractedCharacter) => c.name),
+        );
         setHasExtracted(true);
         message.success(messages.extractSuccess(characters.length));
       } else {
@@ -88,7 +109,9 @@ function ScriptCharacters() {
       }
     } catch (error: any) {
       console.error('提取角色失败:', error);
-      message.error(messages.extractError + ': ' + (error.message || '未知错误'));
+      message.error(
+        messages.extractError + ': ' + (error.message || '未知错误'),
+      );
     } finally {
       setExtracting(false);
     }
@@ -96,8 +119,13 @@ function ScriptCharacters() {
 
   // 保存选中的角色到角色库
   const handleSaveCharacters = async () => {
-    const charactersToSave = extractedCharacters.filter(c => 
-      selectedCharacters.includes(c.name)
+    if (!currentUser) {
+      message.error('请先登录');
+      return;
+    }
+
+    const charactersToSave = extractedCharacters.filter((c) =>
+      selectedCharacters.includes(c.name),
     );
 
     if (charactersToSave.length === 0) {
@@ -107,7 +135,10 @@ function ScriptCharacters() {
 
     setSaving(true);
     try {
-      const response = await batchSaveCharacters(charactersToSave, currentUser.id);
+      const response = await batchSaveCharacters(
+        charactersToSave,
+        currentUser.id,
+      );
       if (response.success) {
         message.success(messages.saveSuccess(charactersToSave.length));
         // 刷新已保存角色列表
@@ -142,10 +173,7 @@ function ScriptCharacters() {
       {/* 页面头部 */}
       <div style={{ marginBottom: '24px' }}>
         <Space>
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={handleBack}
-          >
+          <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
             {buttonTexts.back}
           </Button>
         </Space>
@@ -157,14 +185,15 @@ function ScriptCharacters() {
       {/* 剧本信息卡片 */}
       {script && (
         <Card style={{ marginBottom: '24px' }} size="small">
-          <Descriptions 
-            size="small" 
+          <Descriptions
+            size="small"
             column={4}
             items={getScriptDescriptionItems(script)}
           />
           {script.description && (
             <div style={{ marginTop: '8px' }}>
-              <strong>描述：</strong>{script.description}
+              <strong>描述：</strong>
+              {script.description}
             </div>
           )}
         </Card>
@@ -172,17 +201,21 @@ function ScriptCharacters() {
 
       {/* 已保存角色列表 */}
       <Card style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+          }}
+        >
           <div>
             <h3 style={{ margin: 0 }}>已保存角色</h3>
             <p style={{ margin: '4px 0 0 0', color: '#666' }}>
               当前用户已保存到角色库的所有角色
             </p>
           </div>
-          <Button
-            onClick={fetchSavedCharacters}
-            loading={loadingSaved}
-          >
+          <Button onClick={fetchSavedCharacters} loading={loadingSaved}>
             {buttonTexts.refreshSaved}
           </Button>
         </div>
@@ -200,7 +233,14 @@ function ScriptCharacters() {
 
       {/* 操作区域 */}
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+          }}
+        >
           <div>
             <h3 style={{ margin: 0 }}>提取新角色</h3>
             <p style={{ margin: '4px 0 0 0', color: '#666' }}>
@@ -256,8 +296,8 @@ function ScriptCharacters() {
               <>
                 <div style={{ marginBottom: '16px' }}>
                   <p>
-                    提取到 <strong>{extractedCharacters.length}</strong> 个角色，
-                    请选择要保存到角色库的角色：
+                    提取到 <strong>{extractedCharacters.length}</strong>{' '}
+                    个角色， 请选择要保存到角色库的角色：
                   </p>
                 </div>
                 <Table
@@ -271,7 +311,9 @@ function ScriptCharacters() {
                     },
                     onSelectAll: (selected) => {
                       if (selected) {
-                        setSelectedCharacters(extractedCharacters.map(c => c.name));
+                        setSelectedCharacters(
+                          extractedCharacters.map((c) => c.name),
+                        );
                       } else {
                         setSelectedCharacters([]);
                       }
@@ -280,8 +322,8 @@ function ScriptCharacters() {
                   expandable={{
                     expandedRowRender: (record) => (
                       <div style={{ padding: '8px 0' }}>
-                        <Descriptions 
-                          size="small" 
+                        <Descriptions
+                          size="small"
                           column={1}
                           items={getCharacterExpandedContent(record)}
                         />
@@ -291,7 +333,9 @@ function ScriptCharacters() {
                 />
               </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div
+                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+              >
                 <p>{emptyStates.noCharacters.title}</p>
                 <p>可能的原因：</p>
                 <ul style={{ textAlign: 'left', display: 'inline-block' }}>
@@ -307,7 +351,13 @@ function ScriptCharacters() {
         {/* 初始状态提示 */}
         {!extracting && !hasExtracted && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-            <div style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }}>
+            <div
+              style={{
+                fontSize: '48px',
+                color: '#d9d9d9',
+                marginBottom: '16px',
+              }}
+            >
               {emptyStates.initial.icon}
             </div>
             <p>{emptyStates.initial.title}</p>

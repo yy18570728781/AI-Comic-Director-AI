@@ -19,7 +19,7 @@ const EmailInput: React.FC<EmailInputProps> = ({
   onChange,
   placeholder = '请输入邮箱地址',
   size = 'large',
-  disabled = false
+  disabled = false,
 }) => {
   const { emailSuffix, setEmailSuffix } = useEmailStore();
   const [emailPrefix, setEmailPrefix] = useState('');
@@ -36,7 +36,7 @@ const EmailInput: React.FC<EmailInputProps> = ({
   const handlePrefixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const prefix = e.target.value;
     setEmailPrefix(prefix);
-    
+
     const fullEmail = combineEmail(prefix, emailSuffix);
     onChange?.(fullEmail);
   };
@@ -44,7 +44,7 @@ const EmailInput: React.FC<EmailInputProps> = ({
   // 处理后缀选择
   const handleSuffixChange = (suffix: string) => {
     setEmailSuffix(suffix); // 更新全局状态，所有组件自动同步
-    
+
     const fullEmail = combineEmail(emailPrefix, suffix);
     onChange?.(fullEmail);
   };
@@ -69,10 +69,12 @@ const EmailInput: React.FC<EmailInputProps> = ({
         placeholder="选择邮箱后缀"
         disabled={disabled}
         filterOption={(input, option) =>
-          (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+          String(option?.children || '')
+            .toLowerCase()
+            .includes(input.toLowerCase())
         }
       >
-        {EMAIL_SUFFIXES.map(suffix => (
+        {EMAIL_SUFFIXES.map((suffix) => (
           <Option key={suffix} value={suffix}>
             {suffix}
           </Option>

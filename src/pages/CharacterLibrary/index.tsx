@@ -5,12 +5,12 @@ import { getScriptList } from '../../api/script';
 import { useNavigate } from 'react-router-dom';
 import { useScriptStore, Script } from '../../stores/useScriptStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { 
-  getScriptTableColumns, 
-  statusFilterOptions, 
-  tableConfig, 
-  searchConfig, 
-  usageInstructions 
+import {
+  getScriptTableColumns,
+  statusFilterOptions,
+  tableConfig,
+  searchConfig,
+  usageInstructions,
 } from './config';
 
 function CharacterLibrary() {
@@ -37,7 +37,7 @@ function CharacterLibrary() {
     setLoading(true);
     try {
       const response = await getScriptList({
-        userId: currentUser.id, // 传递当前用户ID
+        // userId: currentUser.id, // getScriptList不支持userId参数，使用teamId或其他方式
         page: 1,
         pageSize: 100,
         keyword: searchKeyword,
@@ -69,7 +69,7 @@ function CharacterLibrary() {
   // 进入剧本角色页面
   const handleViewScriptCharacters = (script: Script) => {
     navigate(`/character-library/script/${script.id}`, {
-      state: { script }
+      state: { script },
     });
   };
 
@@ -81,12 +81,17 @@ function CharacterLibrary() {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+        }}
+      >
         <h2>角色库</h2>
         <Space>
-          <Button icon={<PlusOutlined />}>
-            手动添加角色
-          </Button>
+          <Button icon={<PlusOutlined />}>手动添加角色</Button>
         </Space>
       </div>
 
@@ -123,9 +128,10 @@ function CharacterLibrary() {
             total: filteredScripts.length,
           }}
           locale={{
-            emptyText: searchKeyword || statusFilter !== 'all' 
-              ? '没有找到匹配的剧本' 
-              : tableConfig.locale.emptyText,
+            emptyText:
+              searchKeyword || statusFilter !== 'all'
+                ? '没有找到匹配的剧本'
+                : tableConfig.locale.emptyText,
           }}
         />
       </Card>
