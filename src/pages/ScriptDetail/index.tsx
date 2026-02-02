@@ -28,11 +28,8 @@ import {
   deleteShot,
 } from '@/api/script';
 import { generateImageAsync, generateVideoAsync } from '@/api/ai';
-import {
-  useQueueImagePolling,
-  useQueueVideoPolling,
-} from '@/hooks/useTaskPolling';
 import { useTaskStore } from '@/stores/useTaskStore';
+import { onTaskComplete } from '@/components/GlobalTaskPoller';
 
 // 导入标签页组件
 import ImageBlendModal from './components/ImageBlendModal';
@@ -60,8 +57,8 @@ function ScriptDetail() {
   ); // 正在生成视频的镜头ID
   const [blendModalVisible, setBlendModalVisible] = useState(false);
 
-  // 使用全局任务状态（队列版本）
-  const { addQueueImageJob, addQueueVideoJob } = useTaskStore();
+  // 使用全局任务状态
+  const { addTask } = useTaskStore();
 
   // 加载剧本详情
   const loadScript = async () => {
@@ -125,68 +122,34 @@ function ScriptDetail() {
     });
   }, []);
 
-  // 图片轮询回调
-  const handleImageComplete = useCallback(
-    (results: any[]) => {
-      results.forEach((result: any) => {
-        if (result.status === 'completed') {
-          if (result.shotId !== 0) {
-            updateShotImage(result.shotId, result.image);
-            message.success(`镜头 #${result.shotId} 图像生成成功！`);
-            // 移除 generatingImages 状态
-            setGeneratingImages((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(result.shotId);
-              return newSet;
-            });
-          } else {
-            message.success('图像融合成功！');
-          }
-        } else if (result.status === 'failed' || result.status === 'error') {
-          if (result.shotId !== 0) {
-            message.error(
-              `镜头 #${result.shotId} 图像生成失败: ${result.error || '未知错误'}`,
-            );
-            // 移除 generatingImages 状态（失败也要移除）
-            setGeneratingImages((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(result.shotId);
-              return newSet;
-            });
-          } else {
-            message.error(`图像生成失败: ${result.error || '未知错误'}`);
-          }
-        }
-      });
-    },
-    [updateShotImage],
-  );
+  // 监听全局任务完成事件
+  useEffect(() => {
+    const unsubscribe = onTaskComplete((event) => {
+      console.log('📬 [ScriptDetail] 收到任务完成事件:', event);
 
-  // 视频轮询回调
-  const handleVideoComplete = useCallback(
-    (results: any[]) => {
-      results.forEach((result: any) => {
-        if (result.status === 'completed') {
-          updateShotVideo(result.shotId, result.video);
-          message.success(`镜头 #${result.shotId} 视频生成成功！`);
-        } else if (result.status === 'failed' || result.status === 'error') {
-          message.error(
-            `镜头 #${result.shotId} 视频生成失败: ${result.error || '未知错误'}`,
-          );
-        }
-      });
-    },
-    [updateShotVideo],
-  );
+      if (event.type === 'image' && event.shotId) {
+        // 图片生成完成
+        updateShotImage(event.shotId, event.result);
+        setGeneratingImages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(event.shotId!);
+          return newSet;
+        });
+      } else if (event.type === 'video' && event.shotId) {
+        // 视频生成完成
+        updateShotVideo(event.shotId, event.result);
+        setGeneratingVideos((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(event.shotId!);
+          return newSet;
+        });
+      }
+    });
 
-  // 启用队列轮询
-  useQueueImagePolling({
-    onComplete: handleImageComplete,
-  });
-
-  useQueueVideoPolling({
-    onComplete: handleVideoComplete,
-  });
+    return () => {
+      unsubscribe();
+    };
+  }, [updateShotImage, updateShotVideo]);
 
   // 生成分镜脚本
   const handleGenerateStoryboard = async () => {
@@ -391,13 +354,14 @@ function ScriptDetail() {
       });
 
       if (res.success && res.data.jobId) {
-        // 添加到队列任务列表
+        // 添加到任务列表
         console.log('✅ 前端：添加图片任务到队列', {
           jobId: res.data.jobId,
           shotId,
         });
-        addQueueImageJob({
+        addTask({
           jobId: res.data.jobId,
+          type: 'image',
           shotId,
         });
 
@@ -521,14 +485,15 @@ function ScriptDetail() {
       const res = await generateVideoAsync(params);
 
       if (res.success && res.data.jobId) {
-        // 添加到队列任务列表
+        // 添加到任务列表
         console.log('✅ 前端：添加视频任务到队列', {
           jobId: res.data.jobId,
           shotId,
           model: params.model,
         });
-        addQueueVideoJob({
+        addTask({
           jobId: res.data.jobId,
+          type: 'video',
           shotId,
           model: params.model,
         });

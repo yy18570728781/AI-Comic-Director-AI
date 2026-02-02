@@ -16,10 +16,11 @@ import {
 } from 'antd';
 import { PlusOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
+import { useTaskStore } from '@/stores/useTaskStore';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
+import { onTaskComplete, TaskCompleteEvent } from '@/components/GlobalTaskPoller';
 import { getModelList } from '@/api/model';
-import { generateVideo } from '@/api/video';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { generateVideoAsync } from '@/api/video';
 
 const { TextArea } = Input;
 
@@ -40,6 +41,7 @@ interface ModelConfig {
 function ImageToVideo() {
   const { token } = theme.useToken();
   const { videoModel, setVideoModel } = useModelStore();
+  const { tasks, addTask } = useTaskStore();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -52,25 +54,32 @@ function ImageToVideo() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<string[]>([]);
-  const [batchCount, setBatchCount] = useState<number>(1); // 批量生成数量，默认1，最大5
+  const [batchCount, setBatchCount] = useState<number>(1);
 
-  // 使用任务轮询 Hook
-  const { addTask, tasks } = useTaskPolling({
-    onTaskComplete: (taskId: string, result: any) => {
-      console.log('✅ 视频生成完成:', taskId, result);
-      if (result.videos && result.videos.length > 0) {
-        const videoUrls = result.videos.map((video: any) => video.url);
-        setGeneratedVideos(prev => [...prev, ...videoUrls]);
-        message.success(`视频生成完成！生成了 ${videoUrls.length} 个视频`);
+  // 监听全局任务完成事件
+  useEffect(() => {
+    const unsubscribe = onTaskComplete((event: TaskCompleteEvent) => {
+      // 只处理视频任务
+      if (event.type === 'video') {
+        console.log('✅ [ImageToVideo] 收到任务完成事件:', event);
+        
+        if (event.result) {
+          // result 可能是数组或单个对象
+          const videos = Array.isArray(event.result) ? event.result : [event.result];
+          const videoUrls = videos.map((v: any) => v.url || v).filter(Boolean);
+          if (videoUrls.length > 0) {
+            setGeneratedVideos(prev => [...prev, ...videoUrls]);
+          }
+        }
+        setGenerating(false);
       }
-      setGenerating(false);
-    },
-    onTaskError: (taskId: string, error: string) => {
-      console.error('❌ 视频生成失败:', taskId, error);
-      message.error(`视频生成失败: ${error}`);
-      setGenerating(false);
-    },
-  });
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 计算当前页面相关的任务数量
+  const pendingTasks = tasks.filter(t => t.type === 'video');
 
   // 获取模型列表
   useEffect(() => {
@@ -183,34 +192,26 @@ function ImageToVideo() {
         requestData.watermark = watermark;
       }
 
-      console.log('🎬 发起视频生成请求:', requestData);
+      console.log(`🎬 发起视频生成请求 (批量: ${batchCount}个):`, requestData);
 
-      // 调用后端 API
-      const response = await generateVideo(requestData);
-
-      if (response.success && response.data) {
-        const { videos, taskId } = response.data;
-        
-        if (videos && videos.length > 0) {
-          // 同步返回结果
-          const videoUrls = videos.map((video: any) => video.url);
-          setGeneratedVideos(videoUrls);
-          message.success(`视频生成完成！生成了 ${videoUrls.length} 个视频`);
-          setGenerating(false);
-        } else if (taskId) {
-          // 异步任务，添加到轮询队列
+      // 批量提交任务到队列
+      const jobIds: string[] = [];
+      for (let i = 0; i < batchCount; i++) {
+        const response = await generateVideoAsync(requestData);
+        if (response.success && response.data?.jobId) {
+          jobIds.push(response.data.jobId);
+          // 添加到全局 store
           addTask({
-            taskId,
+            jobId: response.data.jobId,
             type: 'video',
             model: videoModel,
           });
-          message.info('视频生成任务已提交，正在处理中...');
         } else {
-          throw new Error('响应数据格式错误');
+          throw new Error(response.message || '提交失败');
         }
-      } else {
-        throw new Error(response.message || '生成失败');
       }
+
+      message.info(`已提交 ${jobIds.length} 个视频生成任务，正在处理中...`);
     } catch (error: any) {
       console.error('❌ 视频生成失败:', error);
       
@@ -484,10 +485,10 @@ function ImageToVideo() {
                 </Button>
 
                 {/* 任务状态显示 */}
-                {tasks.length > 0 && (
+                {pendingTasks.length > 0 && (
                   <div>
-                    <div style={{ marginBottom: 8, fontWeight: 500 }}>处理中的任务</div>
-                    {tasks.map((task: any) => (
+                    <div style={{ marginBottom: 8, fontWeight: 500 }}>处理中的任务 ({pendingTasks.length})</div>
+                    {pendingTasks.slice(0, 5).map((task: any) => (
                       <div
                         key={task.taskId}
                         style={{
@@ -498,7 +499,7 @@ function ImageToVideo() {
                         }}
                       >
                         <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
-                          {task.model} - {task.taskId.substring(0, 8)}...
+                          {task.model} - {String(task.taskId).substring(0, 8)}...
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Spin size="small" />
@@ -506,6 +507,11 @@ function ImageToVideo() {
                         </div>
                       </div>
                     ))}
+                    {pendingTasks.length > 5 && (
+                      <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
+                        还有 {pendingTasks.length - 5} 个任务...
+                      </div>
+                    )}
                   </div>
                 )}
               </Space>
@@ -524,7 +530,7 @@ function ImageToVideo() {
               minHeight: 500,
             }}
           >
-            {generating && tasks.length === 0 && (
+            {generating && pendingTasks.length === 0 && (
               <div
                 style={{
                   display: 'flex',
@@ -537,7 +543,7 @@ function ImageToVideo() {
               </div>
             )}
 
-            {!generating && generatedVideos.length === 0 && tasks.length === 0 && (
+            {!generating && generatedVideos.length === 0 && pendingTasks.length === 0 && (
               <div
                 style={{
                   display: 'flex',

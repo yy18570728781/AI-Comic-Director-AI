@@ -57,7 +57,11 @@ export function GlobalTaskPoller() {
       console.log(`🔄 [统一轮询] 查询 ${tasks.length} 个任务`);
 
       const res: any = await batchGetAllTaskStatus({
-        tasks: tasks.map(t => ({ jobId: t.jobId, type: t.type })),
+        tasks: tasks.map(t => ({ 
+          jobId: t.jobId, 
+          type: t.type,
+          videoId: t.videoId, // 视频任务需要 videoId 查询数据库状态
+        })),
       });
 
       if (res.success && res.data) {
