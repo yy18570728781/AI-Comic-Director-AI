@@ -128,8 +128,15 @@ function ScriptDetail() {
       console.log('📬 [ScriptDetail] 收到任务完成事件:', event);
 
       if (event.type === 'image' && event.shotId) {
-        // 图片生成完成
-        updateShotImage(event.shotId, event.result);
+        // 图片生成完成 - 使用savedImage对象
+        const imageToAdd = event.result.savedImage || {
+          url: event.result.images?.[0]?.url,
+          id: Date.now(), // 临时ID
+        };
+
+        // console.log('🖼️ [ScriptDetail] 添加图片到分镜:', imageToAdd);
+        updateShotImage(event.shotId, imageToAdd);
+
         setGeneratingImages((prev) => {
           const newSet = new Set(prev);
           newSet.delete(event.shotId!);

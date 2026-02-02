@@ -17,7 +17,10 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
 import { useTaskStore } from '@/stores/useTaskStore';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
-import { onTaskComplete, TaskCompleteEvent } from '@/components/GlobalTaskPoller';
+import {
+  onTaskComplete,
+  TaskCompleteEvent,
+} from '@/components/GlobalTaskPoller';
 import { getModelList } from '@/api/model';
 import { generateImageAsync, blendImages } from '@/api/image';
 
@@ -49,6 +52,7 @@ function ImageToImage() {
   const [generating, setGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [batchCount, setBatchCount] = useState<number>(1);
+  const [saveToLibrary, setSaveToLibrary] = useState<boolean>(true); // 默认保存到资源库
 
   // 监听全局任务完成事件
   useEffect(() => {
@@ -56,11 +60,32 @@ function ImageToImage() {
       // 只处理图片任务（包含融图）
       if (event.type === 'image') {
         console.log('✅ [ImageToImage] 收到任务完成事件:', event);
-        
+
         if (event.result) {
-          const imageUrl = event.result.url || event.result;
+          // 直接从images数组获取图片URL
+          let imageUrl: string | null = null;
+
+          if (event.result.images && event.result.images.length > 0) {
+            imageUrl = event.result.images[0].url;
+          }
+          // 兜底：如果是数据库保存的图片格式
+          else if (event.result.url) {
+            imageUrl = event.result.url;
+          }
+          // 兜底：如果result本身就是URL字符串
+          else if (typeof event.result === 'string') {
+            imageUrl = event.result;
+          }
+
+          console.log('🖼️ [ImageToImage] 解析到图片URL:', imageUrl);
+
           if (imageUrl) {
-            setGeneratedImages(prev => [...prev, imageUrl]);
+            setGeneratedImages((prev) => [...prev, imageUrl]);
+          } else {
+            console.error(
+              '❌ [ImageToImage] 无法从结果中提取图片URL:',
+              event.result,
+            );
           }
         }
         setGenerating(false);
@@ -71,7 +96,7 @@ function ImageToImage() {
   }, []);
 
   // 计算当前页面相关的任务数量
-  const pendingTasks = tasks.filter(t => t.type === 'image');
+  const pendingTasks = tasks.filter((t) => t.type === 'image');
 
   // 获取模型列表
   useEffect(() => {
@@ -430,7 +455,13 @@ function ImageToImage() {
                       </Tag>
                     ))}
                   </div>
-                  <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: token.colorTextTertiary,
+                      marginTop: 4,
+                    }}
+                  >
                     💡 每次最多生成5张图片，消耗点数 = 30 × 数量
                   </div>
                 </div>
@@ -487,7 +518,8 @@ function ImageToImage() {
                             color: token.colorTextSecondary,
                           }}
                         >
-                          {task.model || '图片'} - {String(task.taskId).substring(0, 8)}...
+                          {task.model || '图片'} -
+                          {String(task.taskId).substring(0, 8)}...
                         </div>
                         <div
                           style={{
@@ -502,7 +534,9 @@ function ImageToImage() {
                       </div>
                     ))}
                     {pendingTasks.length > 5 && (
-                      <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
+                      <div
+                        style={{ fontSize: 12, color: token.colorTextTertiary }}
+                      >
                         还有 {pendingTasks.length - 5} 个任务...
                       </div>
                     )}

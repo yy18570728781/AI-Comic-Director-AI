@@ -1,8 +1,8 @@
 /**
  * 全局任务轮询组件
- * 
+ *
  * 在 App 层级挂载，无论用户在哪个页面都会持续轮询任务状态
- * 
+ *
  * 特点：
  * - 单次 HTTP 请求查询所有类型的任务状态
  * - 统一使用队列 jobId
@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { message } from 'antd';
-import { useTaskStore, Task } from '@/stores/useTaskStore';
+import { useTaskStore } from '@/stores/useTaskStore';
 import { batchGetAllTaskStatus } from '@/api/ai';
 
 // 轮询间隔（毫秒）
@@ -39,7 +39,8 @@ export function onTaskComplete(listener: TaskCompleteListener): () => void {
 
 // 触发任务完成事件
 function emitTaskComplete(event: TaskCompleteEvent) {
-  listeners.forEach(listener => listener(event));
+  console.log('🔔 [GlobalTaskPoller] 触发任务完成事件:', event);
+  listeners.forEach((listener) => listener(event));
 }
 
 export function GlobalTaskPoller() {
@@ -57,8 +58,8 @@ export function GlobalTaskPoller() {
       console.log(`🔄 [统一轮询] 查询 ${tasks.length} 个任务`);
 
       const res: any = await batchGetAllTaskStatus({
-        tasks: tasks.map(t => ({ 
-          jobId: t.jobId, 
+        tasks: tasks.map((t) => ({
+          jobId: t.jobId,
           type: t.type,
           videoId: t.videoId, // 视频任务需要 videoId 查询数据库状态
         })),
@@ -68,19 +69,24 @@ export function GlobalTaskPoller() {
         const finishedJobIds: (string | number)[] = [];
 
         res.data.forEach((item: any) => {
-          const task = tasks.find(t => t.jobId == item.jobId);
+          const task = tasks.find((t) => t.jobId == item.jobId);
           if (!task) return;
 
           if (item.state === 'completed') {
             finishedJobIds.push(item.jobId);
-            console.log(`✅ [统一轮询] 任务完成: type=${item.type}, jobId=${item.jobId}`);
+            console.log(
+              `✅ [统一轮询] 任务完成: type=${item.type}, jobId=${item.jobId}`,
+            );
+            console.log(`📋 [统一轮询] 原始结果:`, item.result);
 
-            // 触发完成事件
+            console.log(`📋 [统一轮询] 处理后结果:`, item.result);
+
+            // 直接使用原始结果，所有图片任务都有images数组
             emitTaskComplete({
               type: item.type,
               jobId: item.jobId,
               shotId: task.shotId,
-              result: item.result?.savedImage || item.result?.savedVideo || item.result,
+              result: item.result,
             });
 
             // 显示成功消息
@@ -92,7 +98,10 @@ export function GlobalTaskPoller() {
             message.success(`${typeNames[item.type] || '任务'}生成完成！`);
           } else if (item.state === 'failed') {
             finishedJobIds.push(item.jobId);
-            console.error(`❌ [统一轮询] 任务失败: type=${item.type}, jobId=${item.jobId}`, item.failedReason);
+            console.error(
+              `❌ [统一轮询] 任务失败: type=${item.type}, jobId=${item.jobId}`,
+              item.failedReason,
+            );
             message.error(`生成失败: ${item.failedReason || '未知错误'}`);
           }
           // waiting, active 状态继续轮询
