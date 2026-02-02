@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Card,
@@ -15,10 +15,11 @@ import {
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
+import { useTaskStore } from '@/stores/useTaskStore';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
+import { onTaskComplete, TaskCompleteEvent } from '@/components/GlobalTaskPoller';
 import { getModelList } from '@/api/model';
-import { generateImage, blendImages } from '@/api/image';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { generateImageAsync, blendImages } from '@/api/image';
 
 const { TextArea } = Input;
 
@@ -37,6 +38,7 @@ interface ModelConfig {
 function ImageToImage() {
   const { token } = theme.useToken();
   const { imageModel, setImageModel } = useModelStore();
+  const { tasks, addTask } = useTaskStore();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -46,42 +48,30 @@ function ImageToImage() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [batchCount, setBatchCount] = useState<number>(1); // 批量生成数量，默认1，最大5
+  const [batchCount, setBatchCount] = useState<number>(1);
 
-  // 使用任务轮询 Hook
-  const { addTask, removeTask, tasks } = useTaskPolling({
-    onTaskComplete: (taskId: string, result: any) => {
-      console.log('✅ 图像生成完成:', taskId, result);
-      if (result.images && result.images.length > 0) {
-        const imageUrls = result.images.map((img: any) => img.url);
-        setGeneratedImages((prev) => [...prev, ...imageUrls]);
-        message.success(`图像生成完成！生成了 ${imageUrls.length} 张图片`);
+  // 监听全局任务完成事件
+  useEffect(() => {
+    const unsubscribe = onTaskComplete((event: TaskCompleteEvent) => {
+      // 只处理图片任务（包含融图）
+      if (event.type === 'image') {
+        console.log('✅ [ImageToImage] 收到任务完成事件:', event);
+        
+        if (event.result) {
+          const imageUrl = event.result.url || event.result;
+          if (imageUrl) {
+            setGeneratedImages(prev => [...prev, imageUrl]);
+          }
+        }
+        setGenerating(false);
       }
-      setGenerating(false);
-    },
-    onTaskError: (taskId: string, error: string) => {
-      console.error('❌ 图像生成失败:', taskId, error);
-      message.error(`图像生成失败: ${error}`);
-      setGenerating(false);
-    },
-  });
+    });
 
-  // 下载图片
-  const handleDownload = (imageUrl: string, index: number) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `generated-image-${index + 1}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    message.success('图片下载完成');
-  };
+    return () => unsubscribe();
+  }, []);
 
-  // 收藏图片（这里可以调用收藏 API）
-  const handleFavorite = (imageUrl: string, index: number) => {
-    // TODO: 调用收藏 API
-    message.success('图片已收藏');
-  };
+  // 计算当前页面相关的任务数量
+  const pendingTasks = tasks.filter(t => t.type === 'image');
 
   // 获取模型列表
   useEffect(() => {
@@ -163,20 +153,30 @@ function ImageToImage() {
 
     setGenerating(true);
     try {
-      let response;
-
       // 判断是否为多图融合
       if (selectedImages.length > 1 && modelConfig?.supportMultiImageFusion) {
-        // 多图融合
+        // 多图融合（使用队列）
         console.log('🎨 发起多图融合请求');
-        response = await blendImages({
+        const response = await blendImages({
           model: imageModel,
           prompt: prompt.trim(),
           referenceImages: selectedImages,
           aspectRatio: aspectRatio,
         });
+
+        if (response.success && response.data?.jobId) {
+          // 添加到全局 store
+          addTask({
+            jobId: response.data.jobId,
+            type: 'image',
+            model: imageModel,
+          });
+          message.info('融图任务已提交，正在处理中...');
+        } else {
+          throw new Error(response.message || '提交失败');
+        }
       } else {
-        // 单图生图或文生图
+        // 单图生图 - 使用异步队列，支持批量
         const requestData: any = {
           prompt: prompt.trim(),
           model: imageModel,
@@ -203,7 +203,6 @@ function ImageToImage() {
               requestData.height = 1024;
           }
         } else {
-          // 默认 1024x1024
           requestData.width = 1024;
           requestData.height = 1024;
         }
@@ -214,13 +213,11 @@ function ImageToImage() {
           const baseSize = requestData.width;
 
           if (widthRatio > heightRatio) {
-            // 横屏
             requestData.width = baseSize;
             requestData.height = Math.round(
               (baseSize * heightRatio) / widthRatio,
             );
           } else {
-            // 竖屏
             requestData.height = baseSize;
             requestData.width = Math.round(
               (baseSize * widthRatio) / heightRatio,
@@ -228,37 +225,30 @@ function ImageToImage() {
           }
         }
 
-        console.log('🎨 发起图生图请求:', requestData);
-        response = await generateImage(requestData);
-      }
+        console.log(`🎨 发起图生图请求 (批量: ${batchCount}张):`, requestData);
 
-      if (response.success && response.data) {
-        const { images, taskId } = response.data;
-
-        if (images && images.length > 0) {
-          // 同步返回结果（如 Seedream）
-          const imageUrls = images.map((img: any) => img.url);
-          setGeneratedImages(imageUrls);
-          message.success(`图像生成完成！生成了 ${imageUrls.length} 张图片`);
-          setGenerating(false);
-        } else if (taskId) {
-          // 异步任务，添加到轮询队列
-          addTask({
-            taskId,
-            type: 'image',
-            model: imageModel,
-          });
-          message.info('图像生成任务已提交，正在处理中...');
-        } else {
-          throw new Error('响应数据格式错误');
+        // 批量提交任务到队列
+        const jobIds: string[] = [];
+        for (let i = 0; i < batchCount; i++) {
+          const response = await generateImageAsync(requestData);
+          if (response.success && response.data?.jobId) {
+            jobIds.push(response.data.jobId);
+            // 添加到全局 store
+            addTask({
+              jobId: response.data.jobId,
+              type: 'image',
+              model: imageModel,
+            });
+          } else {
+            throw new Error(response.message || '提交失败');
+          }
         }
-      } else {
-        throw new Error(response.message || '生成失败');
+
+        message.info(`已提交 ${jobIds.length} 个图像生成任务，正在处理中...`);
       }
     } catch (error: any) {
       console.error('❌ 图像生成失败:', error);
 
-      // 根据错误类型提供更友好的提示
       let errorMessage = '生成失败，请重试';
       if (error.message?.includes('timeout')) {
         errorMessage = '请求超时，请检查网络连接后重试';
@@ -271,7 +261,6 @@ function ImageToImage() {
       }
 
       message.error(errorMessage);
-    } finally {
       setGenerating(false);
     }
   };
@@ -477,12 +466,12 @@ function ImageToImage() {
                 </Button>
 
                 {/* 任务状态显示 */}
-                {tasks.length > 0 && (
+                {pendingTasks.length > 0 && (
                   <div>
                     <div style={{ marginBottom: 8, fontWeight: 500 }}>
-                      处理中的任务
+                      处理中的任务 ({pendingTasks.length})
                     </div>
-                    {tasks.map((task: any) => (
+                    {pendingTasks.slice(0, 5).map((task: any) => (
                       <div
                         key={task.taskId}
                         style={{
@@ -498,7 +487,7 @@ function ImageToImage() {
                             color: token.colorTextSecondary,
                           }}
                         >
-                          {task.model} - {task.taskId.substring(0, 8)}...
+                          {task.model || '图片'} - {String(task.taskId).substring(0, 8)}...
                         </div>
                         <div
                           style={{
@@ -512,6 +501,11 @@ function ImageToImage() {
                         </div>
                       </div>
                     ))}
+                    {pendingTasks.length > 5 && (
+                      <div style={{ fontSize: 12, color: token.colorTextTertiary }}>
+                        还有 {pendingTasks.length - 5} 个任务...
+                      </div>
+                    )}
                   </div>
                 )}
               </Space>
