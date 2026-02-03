@@ -11,12 +11,12 @@ export interface ModelConfig {
 
 // 默认模型配置
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-    imageModel: 'seedream', // 默认使用即梦（Seedream）
-    videoModel: 'seedance-pro-fast', // 默认使用 Seedance Pro Fast
+    imageModel: 'doubao-seedream-4-5-251128', // 默认使用即梦4.5
+    videoModel: 'doubao-seedance-1-0-pro-fast-251015', // 默认使用 Seedance Pro Fast
 };
 
 // 配置版本号，用于强制更新
-const CONFIG_VERSION = 5; // 增加版本号，强制重置配置
+const CONFIG_VERSION = 6; // 增加版本号，强制重置配置
 
 // 模型选项接口（与后端返回的格式一致）
 export interface ModelOption {
