@@ -332,6 +332,11 @@ export function generateImageAsync(data: {
     seed?: number
     shotId?: number
     scriptId?: number
+    saveToLibrary?: boolean
+    libraryName?: string
+    libraryTags?: string[]
+    userId?: number
+    characterId?: number
 }) {
     return request({
         url: '/api/ai/image/generate-async',
