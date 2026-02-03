@@ -50,7 +50,7 @@ interface Shot {
 interface ShotsTabProps {
   shots: Shot[];
   generateLoading: boolean;
-  generatingImages: Set<number>;
+  generatingImages: Set<number | string>;
   onGenerateStoryboard: () => void;
   onEditShot: (shot: Shot) => void;
   onDeleteShot: (shotId: number) => void;
