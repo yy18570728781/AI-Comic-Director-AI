@@ -35,8 +35,8 @@ interface Shot {
 
 interface ImagesTabProps {
   shots: Shot[];
-  generatingImages: Set<number>;
-  generatingVideos: Set<number>;
+  generatingImages: Set<number | string>;
+  generatingVideos: Set<number | string>;
   scriptId?: number;
   onGenerateVideo: (shot: Shot, config: any) => void;
   onEditShot: (shot: Shot) => void;

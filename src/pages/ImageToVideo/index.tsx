@@ -16,11 +16,9 @@ import {
 } from 'antd';
 import { PlusOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
-import { useTaskStore } from '@/stores/useTaskStore';
+import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
-import { onTaskComplete, TaskCompleteEvent } from '@/components/GlobalTaskPoller';
 import { getModelList } from '@/api/model';
-import { generateVideoAsync } from '@/api/video';
 
 const { TextArea } = Input;
 
@@ -41,7 +39,6 @@ interface ModelConfig {
 function ImageToVideo() {
   const { token } = theme.useToken();
   const { videoModel, setVideoModel } = useModelStore();
-  const { tasks, addTask } = useTaskStore();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -52,33 +49,20 @@ function ImageToVideo() {
   const [cameraFixed, setCameraFixed] = useState<boolean>(false);
   const [watermark, setWatermark] = useState<boolean>(true);
   const [selectorVisible, setSelectorVisible] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [generatedVideos, setGeneratedVideos] = useState<string[]>([]);
   const [batchCount, setBatchCount] = useState<number>(1);
+  const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
 
-  // 监听全局任务完成事件
-  useEffect(() => {
-    const unsubscribe = onTaskComplete((event: TaskCompleteEvent) => {
-      // 只处理视频任务
-      if (event.type === 'video') {
-        console.log('✅ [ImageToVideo] 收到任务完成事件:', event);
-        
-        if (event.result) {
-          // 后端返回格式: { savedVideo: { id, url, shotId } }
-          const videoUrl = event.result.savedVideo?.url || event.result.url;
-          if (videoUrl) {
-            setGeneratedVideos(prev => [...prev, videoUrl]);
-          }
-        }
-        setGenerating(false);
-      }
-    });
+  // 使用统一的 AI 生成 hook
+  const { generateVideo, tasks, generatingVideoIds } = useAIGeneration({
+    onVideoComplete: (video) => {
+      setGeneratedVideos(prev => [...prev, video]);
+    },
+    showMessage: true,
+  });
 
-    return () => unsubscribe();
-  }, []);
-
-  // 计算当前页面相关的任务数量
+  // 计算状态
   const pendingTasks = tasks.filter(t => t.type === 'video');
+  const generating = generatingVideoIds.size > 0 || pendingTasks.length > 0;
 
   // 获取模型列表
   useEffect(() => {
@@ -167,66 +151,15 @@ function ImageToVideo() {
       return;
     }
 
-    setGenerating(true);
-    try {
-      // 构建请求参数
-      const requestData: any = {
+    // 批量提交任务
+    for (let i = 0; i < batchCount; i++) {
+      await generateVideo({
         prompt: prompt.trim(),
         model: videoModel,
         referenceImages: selectedImages,
         duration,
-      };
-
-      // 根据模型添加特定参数
-      if (modelConfig?.resolutions) {
-        requestData.resolution = resolution;
-      }
-      if (modelConfig?.aspectRatios) {
-        requestData.aspectRatio = aspectRatio;
-      }
-
-      // Seedance 特有参数
-      if (videoModel.includes('seedance')) {
-        requestData.cameraFixed = cameraFixed;
-        requestData.watermark = watermark;
-      }
-
-      console.log(`🎬 发起视频生成请求 (批量: ${batchCount}个):`, requestData);
-
-      // 批量提交任务到队列
-      const jobIds: string[] = [];
-      for (let i = 0; i < batchCount; i++) {
-        const response = await generateVideoAsync(requestData);
-        if (response.success && response.data?.jobId) {
-          jobIds.push(response.data.jobId);
-          // 添加到全局 store
-          addTask({
-            jobId: response.data.jobId,
-            type: 'video',
-            model: videoModel,
-          });
-        } else {
-          throw new Error(response.message || '提交失败');
-        }
-      }
-
-      message.info(`已提交 ${jobIds.length} 个视频生成任务，正在处理中...`);
-    } catch (error: any) {
-      console.error('❌ 视频生成失败:', error);
-      
-      let errorMessage = '生成失败，请重试';
-      if (error.message?.includes('timeout')) {
-        errorMessage = '请求超时，请检查网络连接后重试';
-      } else if (error.message?.includes('API key')) {
-        errorMessage = 'API 密钥配置错误，请联系管理员';
-      } else if (error.message?.includes('quota')) {
-        errorMessage = 'API 配额不足，请稍后重试';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      message.error(errorMessage);
-      setGenerating(false);
+        resolution,
+      });
     }
   };
 
@@ -569,7 +502,7 @@ function ImageToVideo() {
               >
                 {generatedVideos.map((video, idx) => (
                   <div
-                    key={idx}
+                    key={video.id || idx}
                     style={{
                       borderRadius: token.borderRadiusLG,
                       overflow: 'hidden',
@@ -579,7 +512,7 @@ function ImageToVideo() {
                     }}
                   >
                     <video
-                      src={video}
+                      src={video.url}
                       controls
                       style={{
                         width: '100%',
@@ -600,18 +533,18 @@ function ImageToVideo() {
                         type="link"
                         size="small"
                         block
-                        onClick={() => handleDownload(video)}
+                        onClick={() => handleDownload(video.url)}
                       >
                         下载
                       </Button>
-                      <Button
+                      {/* <Button
                         type="link"
                         size="small"
                         block
-                        onClick={() => handleFavorite(video)}
+                        onClick={() => handleFavorite(video.url)}
                       >
                         收藏
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 ))}

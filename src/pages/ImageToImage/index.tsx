@@ -15,14 +15,9 @@ import {
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
-import { useTaskStore } from '@/stores/useTaskStore';
+import { useAIGeneration, GeneratedImage } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
-import {
-  onTaskComplete,
-  TaskCompleteEvent,
-} from '@/components/GlobalTaskPoller';
 import { getModelList } from '@/api/model';
-import { generateImageAsync, blendImages } from '@/api/image';
 
 const { TextArea } = Input;
 
@@ -41,7 +36,6 @@ interface ModelConfig {
 function ImageToImage() {
   const { token } = theme.useToken();
   const { imageModel, setImageModel } = useModelStore();
-  const { tasks, addTask } = useTaskStore();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -49,54 +43,20 @@ function ImageToImage() {
   const [quality, setQuality] = useState<string | undefined>();
   const [aspectRatio, setAspectRatio] = useState<string | undefined>();
   const [selectorVisible, setSelectorVisible] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [batchCount, setBatchCount] = useState<number>(1);
-  const [saveToLibrary, setSaveToLibrary] = useState<boolean>(true); // 默认保存到资源库
 
-  // 监听全局任务完成事件
-  useEffect(() => {
-    const unsubscribe = onTaskComplete((event: TaskCompleteEvent) => {
-      // 只处理图片任务（包含融图）
-      if (event.type === 'image') {
-        console.log('✅ [ImageToImage] 收到任务完成事件:', event);
+  // 使用统一的 AI 生成 hook
+  const { generateImage, tasks, generatingImageIds } = useAIGeneration({
+    onImageComplete: (image) => {
+      setGeneratedImages(prev => [...prev, image]);
+    },
+    showMessage: true,
+  });
 
-        if (event.result) {
-          // 直接从images数组获取图片URL
-          let imageUrl: string | null = null;
-
-          if (event.result.images && event.result.images.length > 0) {
-            imageUrl = event.result.images[0].url;
-          }
-          // 兜底：如果是数据库保存的图片格式
-          else if (event.result.url) {
-            imageUrl = event.result.url;
-          }
-          // 兜底：如果result本身就是URL字符串
-          else if (typeof event.result === 'string') {
-            imageUrl = event.result;
-          }
-
-          console.log('🖼️ [ImageToImage] 解析到图片URL:', imageUrl);
-
-          if (imageUrl) {
-            setGeneratedImages((prev) => [...prev, imageUrl]);
-          } else {
-            console.error(
-              '❌ [ImageToImage] 无法从结果中提取图片URL:',
-              event.result,
-            );
-          }
-        }
-        setGenerating(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // 计算当前页面相关的任务数量
-  const pendingTasks = tasks.filter((t) => t.type === 'image');
+  // 计算状态
+  const pendingTasks = tasks.filter(t => t.type === 'image');
+  const generating = generatingImageIds.size > 0 || pendingTasks.length > 0;
 
   // 获取模型列表
   useEffect(() => {
@@ -176,117 +136,37 @@ function ImageToImage() {
       return;
     }
 
-    setGenerating(true);
-    try {
-      // 判断是否为多图融合
-      if (selectedImages.length > 1 && modelConfig?.supportMultiImageFusion) {
-        // 多图融合（使用队列）
-        console.log('🎨 发起多图融合请求');
-        const response = await blendImages({
-          model: imageModel,
-          prompt: prompt.trim(),
-          referenceImages: selectedImages,
-          aspectRatio: aspectRatio,
-        });
+    // 计算宽高
+    let width = 1024;
+    let height = 1024;
+    
+    if (quality) {
+      switch (quality) {
+        case '2K': width = height = 2048; break;
+        case '4K': width = height = 4096; break;
+        default: width = height = 1024;
+      }
+    }
 
-        if (response.success && response.data?.jobId) {
-          // 添加到全局 store
-          addTask({
-            jobId: response.data.jobId,
-            type: 'image',
-            model: imageModel,
-          });
-          message.info('融图任务已提交，正在处理中...');
-        } else {
-          throw new Error(response.message || '提交失败');
-        }
+    // 根据比例调整
+    if (aspectRatio && aspectRatio !== '1:1') {
+      const [w, h] = aspectRatio.split(':').map(Number);
+      if (w > h) {
+        height = Math.round((width * h) / w);
       } else {
-        // 单图生图 - 使用异步队列，支持批量
-        const requestData: any = {
-          prompt: prompt.trim(),
-          model: imageModel,
-          referenceImages: selectedImages,
-        };
-
-        // 如果有画质配置，转换为宽高
-        if (quality) {
-          switch (quality) {
-            case '1K':
-              requestData.width = 1024;
-              requestData.height = 1024;
-              break;
-            case '2K':
-              requestData.width = 2048;
-              requestData.height = 2048;
-              break;
-            case '4K':
-              requestData.width = 4096;
-              requestData.height = 4096;
-              break;
-            default:
-              requestData.width = 1024;
-              requestData.height = 1024;
-          }
-        } else {
-          requestData.width = 1024;
-          requestData.height = 1024;
-        }
-
-        // 如果有画面比例，调整宽高
-        if (aspectRatio && aspectRatio !== '1:1') {
-          const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-          const baseSize = requestData.width;
-
-          if (widthRatio > heightRatio) {
-            requestData.width = baseSize;
-            requestData.height = Math.round(
-              (baseSize * heightRatio) / widthRatio,
-            );
-          } else {
-            requestData.height = baseSize;
-            requestData.width = Math.round(
-              (baseSize * widthRatio) / heightRatio,
-            );
-          }
-        }
-
-        console.log(`🎨 发起图生图请求 (批量: ${batchCount}张):`, requestData);
-
-        // 批量提交任务到队列
-        const jobIds: string[] = [];
-        for (let i = 0; i < batchCount; i++) {
-          const response = await generateImageAsync(requestData);
-          if (response.success && response.data?.jobId) {
-            jobIds.push(response.data.jobId);
-            // 添加到全局 store
-            addTask({
-              jobId: response.data.jobId,
-              type: 'image',
-              model: imageModel,
-            });
-          } else {
-            throw new Error(response.message || '提交失败');
-          }
-        }
-
-        message.info(`已提交 ${jobIds.length} 个图像生成任务，正在处理中...`);
+        width = Math.round((height * w) / h);
       }
-    } catch (error: any) {
-      console.error('❌ 图像生成失败:', error);
+    }
 
-      let errorMessage = '生成失败，请重试';
-      if (error.message?.includes('timeout')) {
-        errorMessage = '请求超时，请检查网络连接后重试';
-      } else if (error.message?.includes('API key')) {
-        errorMessage = 'API 密钥配置错误，请联系管理员';
-      } else if (error.message?.includes('quota')) {
-        errorMessage = 'API 配额不足，请稍后重试';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      message.error(errorMessage);
-      setGenerating(false);
+    // 批量提交任务
+    for (let i = 0; i < batchCount; i++) {
+      await generateImage({
+        prompt: prompt.trim(),
+        model: imageModel,
+        width,
+        height,
+        referenceImages: selectedImages,
+      });
     }
   };
 
@@ -569,7 +449,7 @@ function ImageToImage() {
                 <Image.PreviewGroup>
                   {generatedImages.map((img, idx) => (
                     <div
-                      key={idx}
+                      key={img.id || idx}
                       style={{
                         borderRadius: token.borderRadiusLG,
                         overflow: 'hidden',
@@ -579,7 +459,7 @@ function ImageToImage() {
                       }}
                     >
                       <Image
-                        src={img}
+                        src={img.url}
                         alt={`generated-${idx}`}
                         style={{
                           width: '100%',

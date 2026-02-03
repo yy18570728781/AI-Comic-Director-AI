@@ -27,9 +27,7 @@ import {
   updateShot,
   deleteShot,
 } from '@/api/script';
-import { generateImageAsync, generateVideoAsync } from '@/api/ai';
-import { useTaskStore } from '@/stores/useTaskStore';
-import { onTaskComplete } from '@/components/GlobalTaskPoller';
+import { useAIGeneration } from '@/hooks/useAIGeneration';
 
 // 导入标签页组件
 import ImageBlendModal from './components/ImageBlendModal';
@@ -49,16 +47,50 @@ function ScriptDetail() {
   const [generateLoading, setGenerateLoading] = useState(false);
   const [editingShotId, setEditingShotId] = useState<number | null>(null);
   const [editForm] = Form.useForm();
-  const [generatingImages, setGeneratingImages] = useState<Set<number>>(
-    new Set(),
-  ); // 正在生成图片的镜头ID
-  const [generatingVideos, setGeneratingVideos] = useState<Set<number>>(
-    new Set(),
-  ); // 正在生成视频的镜头ID
   const [blendModalVisible, setBlendModalVisible] = useState(false);
 
-  // 使用全局任务状态
-  const { addTask } = useTaskStore();
+  // 更新 script 中对应镜头的图片
+  const updateShotImage = useCallback((shotId: number, image: any) => {
+    setScript((prevScript: any) => {
+      if (!prevScript) return prevScript;
+      const updatedShots = prevScript.shots.map((shot: any) => {
+        if (shot.id === shotId) {
+          return { ...shot, images: shot.images ? [...shot.images, image] : [image] };
+        }
+        return shot;
+      });
+      return { ...prevScript, shots: updatedShots };
+    });
+  }, []);
+
+  // 更新 script 中对应镜头的视频
+  const updateShotVideo = useCallback((shotId: number, video: any) => {
+    setScript((prevScript: any) => {
+      if (!prevScript) return prevScript;
+      const updatedShots = prevScript.shots.map((shot: any) => {
+        if (shot.id === shotId) {
+          return { ...shot, videos: shot.videos ? [...shot.videos, video] : [video] };
+        }
+        return shot;
+      });
+      return { ...prevScript, shots: updatedShots };
+    });
+  }, []);
+
+  // 使用统一的 AI 生成 hook
+  const { 
+    generateImage, 
+    generateVideo, 
+    generatingImageIds, 
+    generatingVideoIds 
+  } = useAIGeneration({
+    onImageComplete: (image, shotId) => {
+      if (shotId) updateShotImage(shotId, image);
+    },
+    onVideoComplete: (video, shotId) => {
+      if (shotId) updateShotVideo(shotId, video);
+    },
+  });
 
   // 加载剧本详情
   const loadScript = async () => {
@@ -77,86 +109,6 @@ function ScriptDetail() {
   useEffect(() => {
     loadScript();
   }, [id]);
-
-  // 更新 script 中对应镜头的图片
-  const updateShotImage = useCallback((shotId: number, image: any) => {
-    setScript((prevScript: any) => {
-      if (!prevScript) return prevScript;
-
-      const updatedShots = prevScript.shots.map((shot: any) => {
-        if (shot.id === shotId) {
-          return {
-            ...shot,
-            images: shot.images ? [...shot.images, image] : [image],
-          };
-        }
-        return shot;
-      });
-
-      return {
-        ...prevScript,
-        shots: updatedShots,
-      };
-    });
-  }, []);
-
-  // 更新 script 中对应镜头的视频
-  const updateShotVideo = useCallback((shotId: number, video: any) => {
-    setScript((prevScript: any) => {
-      if (!prevScript) return prevScript;
-
-      const updatedShots = prevScript.shots.map((shot: any) => {
-        if (shot.id === shotId) {
-          return {
-            ...shot,
-            videos: shot.videos ? [...shot.videos, video] : [video],
-          };
-        }
-        return shot;
-      });
-
-      return {
-        ...prevScript,
-        shots: updatedShots,
-      };
-    });
-  }, []);
-
-  // 监听全局任务完成事件
-  useEffect(() => {
-    const unsubscribe = onTaskComplete((event) => {
-      console.log('📬 [ScriptDetail] 收到任务完成事件:', event);
-
-      if (event.type === 'image' && event.shotId) {
-        // 图片生成完成 - 使用savedImage对象
-        const imageToAdd = event.result.savedImage || {
-          url: event.result.images?.[0]?.url,
-          id: Date.now(), // 临时ID
-        };
-
-        // console.log('🖼️ [ScriptDetail] 添加图片到分镜:', imageToAdd);
-        updateShotImage(event.shotId, imageToAdd);
-
-        setGeneratingImages((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(event.shotId!);
-          return newSet;
-        });
-      } else if (event.type === 'video' && event.shotId) {
-        // 视频生成完成
-        updateShotVideo(event.shotId, event.result);
-        setGeneratingVideos((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(event.shotId!);
-          return newSet;
-        });
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [updateShotImage, updateShotVideo]);
 
   // 生成分镜脚本
   const handleGenerateStoryboard = async () => {
@@ -308,88 +260,24 @@ function ScriptDetail() {
     }
   };
 
-  // 生成图像（使用队列）
+  // 生成图像（使用 hook）
   const handleGenerateImage = async (shot: any, config?: any) => {
     const shotId = shot.id;
 
-    console.log('🎨 前端：准备生成图片（队列）');
-    console.log('📋 shot 对象:', shot);
-    console.log('⚙️ 配置:', config);
-
     // 防止重复生成
-    if (generatingImages.has(shotId)) {
+    if (generatingImageIds.has(shotId)) {
       message.warning('该镜头正在生成图像，请稍候');
       return;
     }
 
-    setGeneratingImages((prev) => new Set(prev).add(shotId));
-
-    try {
-      message.loading({
-        content: '正在提交到队列...',
-        key: `gen-${shotId}`,
-        duration: 2,
-      });
-
-      // 根据图像比例计算宽高
-      let width = 1024;
-      let height = 1024;
-
-      if (config?.aspectRatio) {
-        const ratioMap: Record<string, [number, number]> = {
-          '1:1': [1024, 1024],
-          '16:9': [1280, 720],
-          '9:16': [720, 1280],
-          '4:3': [1024, 1024],
-          '3:4': [768, 1152],
-          '21:9': [1280, 720],
-        };
-        [width, height] = ratioMap[config.aspectRatio] || [1024, 1024];
-      }
-
-      const prompt = config?.imagePrompt || shot.imagePrompt;
-
-      // 使用队列异步API
-      const res = await generateImageAsync({
-        prompt,
-        model: config?.model || 'wanx',
-        width,
-        height,
-        referenceImages: config?.referenceImages || [],
-        shotId,
-        scriptId: script?.id,
-      });
-
-      if (res.success && res.data.jobId) {
-        // 添加到任务列表
-        console.log('✅ 前端：添加图片任务到队列', {
-          jobId: res.data.jobId,
-          shotId,
-        });
-        addTask({
-          jobId: res.data.jobId,
-          type: 'image',
-          shotId,
-        });
-
-        message.info({
-          content: '图像任务已提交到队列，正在处理中...',
-          key: `gen-${shotId}`,
-        });
-      } else {
-        throw new Error('任务创建失败');
-      }
-    } catch (error: any) {
-      message.error({
-        content: error.message || '生成失败',
-        key: `gen-${shotId}`,
-      });
-      setGeneratingImages((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(shotId);
-        return newSet;
-      });
-    }
+    await generateImage({
+      prompt: config?.imagePrompt || shot.imagePrompt,
+      model: config?.model || 'seedream',
+      aspectRatio: config?.aspectRatio || '1:1',
+      referenceImages: config?.referenceImages || [],
+      shotId,
+      scriptId: script?.id,
+    });
   };
 
   // 多图融合（保持使用旧API，因为融图不走队列）
@@ -433,19 +321,9 @@ function ScriptDetail() {
     }
   };
 
-  // 生成视频（使用队列）
+  // 生成视频（使用 hook）
   const handleGenerateVideo = async (shot: any, config: any) => {
     const shotId = shot.id;
-
-    console.log('🎬 前端：准备生成视频（队列）');
-    console.log('📋 shot 对象:', shot);
-    console.log('⚙️ 配置:', config);
-
-    // 防止重复生成
-    if (generatingVideos.has(shotId)) {
-      message.warning('该镜头正在生成视频，请稍候');
-      return;
-    }
 
     // 检查是否有首帧
     const firstFrameImage = shot.images?.find((img: any) => img.isFirstFrame);
@@ -454,75 +332,19 @@ function ScriptDetail() {
       return;
     }
 
-    setGeneratingVideos((prev) => new Set(prev).add(shotId));
+    // 检查是否有尾帧
+    const lastFrameImage = shot.images?.find((img: any) => img.isLastFrame);
 
-    try {
-      message.loading({
-        content: '正在提交到队列...',
-        key: `gen-video-${shotId}`,
-        duration: 2,
-      });
-
-      // 检查是否有尾帧
-      const lastFrameImage = shot.images?.find((img: any) => img.isLastFrame);
-
-      const params: any = {
-        prompt:
-          config.videoPrompt ||
-          shot.videoPrompt ||
-          shot.visualDescription ||
-          '',
-        model: config.model || 'wan2.6-i2v-flash',
-        duration: config.duration || 5,
-        shotId,
-        scriptId: script?.id,
-      };
-
-      if (lastFrameImage) {
-        // 使用首尾帧
-        params.referenceImages = [firstFrameImage.url, lastFrameImage.url];
-        console.log('🎬 使用首尾帧生成视频');
-      } else {
-        // 只用首帧
-        params.referenceImage = firstFrameImage.url;
-        console.log('🎬 使用单图（首帧）生成视频');
-      }
-
-      // 使用队列异步API
-      const res = await generateVideoAsync(params);
-
-      if (res.success && res.data.jobId) {
-        // 添加到任务列表
-        console.log('✅ 前端：添加视频任务到队列', {
-          jobId: res.data.jobId,
-          shotId,
-          model: params.model,
-        });
-        addTask({
-          jobId: res.data.jobId,
-          type: 'video',
-          shotId,
-          model: params.model,
-        });
-
-        message.info({
-          content: '视频任务已提交到队列，正在处理中（预计1-2分钟）...',
-          key: `gen-video-${shotId}`,
-        });
-      } else {
-        throw new Error('任务创建失败');
-      }
-    } catch (error: any) {
-      message.error({
-        content: error.message || '生成失败',
-        key: `gen-video-${shotId}`,
-      });
-      setGeneratingVideos((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(shotId);
-        return newSet;
-      });
-    }
+    // 使用 hook 生成视频
+    await generateVideo({
+      prompt: config.videoPrompt || shot.videoPrompt || shot.visualDescription || '',
+      model: config.model || 'doubao-seedance-1-0-lite-i2v-250428',
+      duration: config.duration || 5,
+      referenceImage: firstFrameImage.url,
+      referenceImages: lastFrameImage ? [firstFrameImage.url, lastFrameImage.url] : undefined,
+      shotId,
+      scriptId: script?.id,
+    });
   };
 
   if (loading) {
@@ -600,7 +422,7 @@ function ScriptDetail() {
           <ShotsTab
             shots={script.shots || []}
             generateLoading={generateLoading}
-            generatingImages={generatingImages}
+            generatingImages={generatingImageIds}
             onGenerateStoryboard={handleGenerateStoryboard}
             onEditShot={handleEditShot}
             onDeleteShot={handleDeleteShot}
@@ -614,8 +436,8 @@ function ScriptDetail() {
         return (
           <ImagesTab
             shots={script.shots || []}
-            generatingImages={generatingImages}
-            generatingVideos={generatingVideos}
+            generatingImages={generatingImageIds}
+            generatingVideos={generatingVideoIds}
             scriptId={script.id}
             onGenerateVideo={handleGenerateVideo}
             onEditShot={handleEditShot}
