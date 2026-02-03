@@ -122,8 +122,8 @@ export default function ImageGenerateModalQueue({
       const res = await generateImageAsync({
         prompt: values.imagePrompt,
         model: imageModel,
-        width: 1024,
-        height: 1024,
+        width: 1920, // 更新为满足火山引擎最小像素要求的尺寸
+        height: 1920,
         referenceImages:
           referenceImages.length > 0 ? referenceImages : undefined,
         shotId: shot.id,

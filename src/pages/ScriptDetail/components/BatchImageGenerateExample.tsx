@@ -23,7 +23,9 @@ export default function BatchImageGenerateExample({
 }: BatchImageGenerateExampleProps) {
   const [generating, setGenerating] = useState(false);
   const [jobIds, setJobIds] = useState<Array<string | number>>([]);
-  const [completedJobs, setCompletedJobs] = useState<Map<string | number, any>>(new Map());
+  const [completedJobs, setCompletedJobs] = useState<Map<string | number, any>>(
+    new Map(),
+  );
   const [failedJobs, setFailedJobs] = useState<Set<string | number>>(new Set());
 
   // 使用全局任务 store
@@ -33,7 +35,8 @@ export default function BatchImageGenerateExample({
   const totalCount = jobIds.length;
   const completedCount = completedJobs.size;
   const failedCount = failedJobs.size;
-  const allCompleted = totalCount > 0 && (completedCount + failedCount) >= totalCount;
+  const allCompleted =
+    totalCount > 0 && completedCount + failedCount >= totalCount;
 
   // 监听任务完成事件
   useEffect(() => {
@@ -41,7 +44,7 @@ export default function BatchImageGenerateExample({
 
     const unsubscribe = onTaskComplete((event) => {
       if (jobIds.includes(event.jobId)) {
-        setCompletedJobs(prev => {
+        setCompletedJobs((prev) => {
           const newMap = new Map(prev);
           newMap.set(event.jobId, event.result);
           return newMap;
@@ -76,10 +79,10 @@ export default function BatchImageGenerateExample({
       const shotData = shots.map((shot) => ({
         id: shot.id,
         prompt: shot.imagePrompt || shot.prompt,
-        model: 'seedream',
+        model: 'doubao-seedream-4-5-251128',
         params: {
-          width: 1024,
-          height: 1024,
+          width: 1920,
+          height: 1920,
         },
       }));
 
@@ -97,7 +100,7 @@ export default function BatchImageGenerateExample({
             jobId,
             type: 'image' as const,
             shotId: shots[index]?.id,
-          }))
+          })),
         );
         message.info(`已提交 ${res.data.count} 个任务到队列`);
       } else {
@@ -159,8 +162,12 @@ export default function BatchImageGenerateExample({
             {jobIds.map((jobId) => {
               const isCompleted = completedJobs.has(jobId);
               const isFailed = failedJobs.has(jobId);
-              const state = isCompleted ? 'completed' : isFailed ? 'failed' : 'active';
-              
+              const state = isCompleted
+                ? 'completed'
+                : isFailed
+                  ? 'failed'
+                  : 'active';
+
               return (
                 <div
                   key={String(jobId)}
