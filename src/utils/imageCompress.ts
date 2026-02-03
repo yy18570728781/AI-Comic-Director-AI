@@ -22,14 +22,17 @@ export interface CompressOptions {
  */
 const getAutoQuality = (fileSizeMB: number): number => {
   if (fileSizeMB < 2) {
-    // 小于2MB，高质量压缩
+    // 小于2MB，保持高质量
+    return 0.95;
+  } else if (fileSizeMB >= 2 && fileSizeMB < 5) {
+    // 2-5MB，高质量压缩
     return 0.9;
-  } else if (fileSizeMB >= 2 && fileSizeMB < 10) {
-    // 2-5MB，中高质量压缩
-    return 0.8;
+  } else if (fileSizeMB >= 5 && fileSizeMB < 10) {
+    // 5-10MB，中高质量压缩
+    return 0.85;
   } else {
     // 大于10MB，中等质量压缩（保证AI识别）
-    return 0.75;
+    return 0.8;
   }
 };
 
@@ -44,15 +47,15 @@ export const compressImage = (
   options: CompressOptions = {}
 ): Promise<File> => {
   const {
-    maxWidth = 1920,
-    maxHeight = 1080,
+    maxWidth = 2560,  // 提高最大宽度，支持高分辨率参考图
+    maxHeight = 2560, // 提高最大高度
     outputType = file.type,
     autoQuality = true
   } = options;
 
   // 计算文件大小（MB）
   const fileSizeMB = file.size / 1024 / 1024;
-  
+
   // 自动计算压缩质量或使用指定质量
   const quality = autoQuality ? getAutoQuality(fileSizeMB) : (options.quality || 0.8);
 
@@ -62,20 +65,20 @@ export const compressImage = (
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       const img = new Image();
-      
+
       img.onload = () => {
         // 计算压缩后的尺寸
         let { width, height } = img;
-        
+
         // 按比例缩放
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         if (height > maxHeight) {
           width = (width * maxHeight) / height;
           height = maxHeight;
@@ -84,7 +87,7 @@ export const compressImage = (
         // 创建 canvas
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
-        
+
         canvas.width = width;
         canvas.height = height;
 
@@ -99,13 +102,13 @@ export const compressImage = (
                 type: outputType,
                 lastModified: Date.now(),
               });
-              
+
               const compressedSizeMB = compressedFile.size / 1024 / 1024;
               const compressionRatio = ((fileSizeMB - compressedSizeMB) / fileSizeMB * 100).toFixed(1);
-              
+
               console.log(`✅ 压缩完成: ${fileSizeMB.toFixed(2)}MB → ${compressedSizeMB.toFixed(2)}MB`);
               console.log(`📉 压缩率: ${compressionRatio}%`);
-              
+
               resolve(compressedFile);
             } else {
               console.error('压缩失败，返回原文件');
@@ -152,18 +155,18 @@ export const shouldCompress = (file: File, maxSize: number = 2 * 1024 * 1024): b
 export const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    
+
     img.onload = () => {
       resolve({
         width: img.naturalWidth,
         height: img.naturalHeight
       });
     };
-    
+
     img.onerror = () => {
       reject(new Error('无法获取图片尺寸'));
     };
-    
+
     img.src = URL.createObjectURL(file);
   });
 };
