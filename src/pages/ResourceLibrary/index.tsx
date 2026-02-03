@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card,
   Radio,
@@ -15,6 +15,7 @@ import {
   Typography,
 } from 'antd';
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { debounce } from 'lodash';
 
 import { getResourceList, deleteResource } from '@/api/resource';
 import { useUserStore } from '@/stores/useUserStore';
@@ -70,11 +71,24 @@ export default function ResourceLibrary() {
     [resourceType, keyword, pageSize],
   );
 
-  // 当条件变化时重新获取数据（包括初始加载）
+  // 防抖的搜索函数
+  const debouncedFetchResources = useMemo(
+    () => debounce(() => fetchResources(1), 500),
+    [fetchResources],
+  );
+
+  // 当 resourceType 变化时立即请求，keyword 变化时防抖请求
   useEffect(() => {
     fetchResources(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resourceType, keyword]);
+  }, [resourceType]);
+
+  useEffect(() => {
+    debouncedFetchResources();
+    return () => {
+      debouncedFetchResources.cancel();
+    };
+  }, [keyword, debouncedFetchResources]);
 
   // 删除资源
   const handleDelete = async (id: number) => {
