@@ -151,11 +151,15 @@ function ImageToVideo() {
       return;
     }
 
+    // 图生视频页面：2张以上用参考图模式
+    const mode = selectedImages.length >= 2 ? 'ref2v' : 'i2v';
+
     // 批量提交任务
     for (let i = 0; i < batchCount; i++) {
       await generateVideo({
         prompt: prompt.trim(),
         model: videoModel,
+        mode,
         referenceImages: selectedImages,
         duration,
         resolution,
