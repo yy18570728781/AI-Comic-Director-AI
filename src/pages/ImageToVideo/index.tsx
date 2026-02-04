@@ -20,6 +20,13 @@ import { useModelStore } from '@/stores/useModelStore';
 import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { getModelList } from '@/api/model';
+import {
+  modeLabels,
+  modeDescriptions,
+  isModeAvailable,
+  getRecommendedMode,
+  getMaxImageCount,
+} from './config';
 
 const { TextArea } = Input;
 
@@ -126,15 +133,26 @@ function ImageToVideo() {
   const modelConfig = currentModel?.config;
 
   // 根据模型支持的 mode 计算最大图片数量
-  const getMaxImageCount = () => {
-    const modes = modelConfig?.supportedModes || [];
-    if (modes.includes('ref2v')) return modelConfig?.maxImages || 4;
-    if (modes.includes('flf2v')) return 2;
-    return 1;
-  };
-  const maxImageCount = getMaxImageCount();
- 
-  
+  const maxImageCount = getMaxImageCount(
+    modelConfig?.supportedModes || [],
+    modelConfig?.maxImages
+  );
+
+  // 当前选中的模式
+  const [selectedMode, setSelectedMode] = useState<string>('ref2v');
+
+  // 图片数量或模型变化时，自动切换到合适的模式
+  useEffect(() => {
+    const supported = modelConfig?.supportedModes || [];
+    const recommended = getRecommendedMode(
+      selectedImages.length,
+      supported,
+      selectedMode
+    );
+    if (recommended !== selectedMode) {
+      setSelectedMode(recommended);
+    }
+  }, [selectedImages.length, modelConfig?.supportedModes, selectedMode]);
 
   // 当模型改变时，重置配置
   const handleModelChange = (value: string) => {
@@ -163,15 +181,19 @@ function ImageToVideo() {
       return;
     }
 
-    // 图生视频页面：2张以上用参考图模式
-    const mode = selectedImages.length >= 2 ? 'ref2v' : 'i2v';
+    const supported = modelConfig?.supportedModes || [];
+    // 检查当前模式是否可用
+    if (!isModeAvailable(selectedMode, selectedImages.length, supported)) {
+      message.error(`当前模式不可用，请调整图片数量或切换模式`);
+      return;
+    }
 
     // 批量提交任务
     for (let i = 0; i < batchCount; i++) {
       await generateVideo({
         prompt: prompt.trim(),
         model: videoModel,
-        mode,
+        mode: selectedMode as 'i2v' | 'flf2v' | 'ref2v' | 't2v',
         referenceImages: selectedImages,
         duration,
         resolution,
@@ -293,7 +315,42 @@ function ImageToVideo() {
                       title: m.description,
                     }))}
                   />
+                  {/* 支持模式提示 */}
+                  <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 8 }}>
+                    📋 支持模式：{(modelConfig?.supportedModes || []).map(m => modeLabels[m] || m).join('、') || '未知'}
+                  </div>
                 </div>
+
+                {/* 生成模式选择 */}
+                {modelConfig?.supportedModes && modelConfig.supportedModes.length > 0 && (
+                  <div>
+                    <div style={{ marginBottom: 12, fontWeight: 500 }}>生成模式</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {modelConfig.supportedModes
+                        .filter(m => m !== 't2v') // 图生视频页面不显示文生视频
+                        .map((m) => {
+                          const available = isModeAvailable(m, selectedImages.length, modelConfig.supportedModes || []);
+                          return (
+                            <Tag
+                              key={m}
+                              color={selectedMode === m ? 'blue' : 'default'}
+                              onClick={() => available && setSelectedMode(m)}
+                              style={{
+                                cursor: available ? 'pointer' : 'not-allowed',
+                                padding: '4px 12px',
+                                opacity: available ? 1 : 0.4,
+                              }}
+                            >
+                              {modeLabels[m] || m}
+                            </Tag>
+                          );
+                        })}
+                    </div>
+                    <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 8 }}>
+                      💡 {modeDescriptions[selectedMode] || ''}
+                    </div>
+                  </div>
+                )}
 
                 {/* 时长选择 */}
                 <div>
