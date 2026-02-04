@@ -389,11 +389,14 @@ export function generateVideoAsync(data: {
  * 批量异步生成视频（使用队列）
  */
 export function batchGenerateVideosAsync(data: {
-    shots: Array<{
-        id: number
-        imageUrl: string
+    tasks: Array<{
+        shotId?: number
+        referenceImages: string[]
+        mode: 't2v' | 'i2v' | 'flf2v' | 'ref2v'
         model?: string
-        params?: any
+        prompt?: string
+        duration?: number
+        resolution?: string
     }>
     scriptId?: number
 }) {
@@ -401,6 +404,7 @@ export function batchGenerateVideosAsync(data: {
         url: '/api/ai/video/batch-generate-async',
         method: 'post',
         data,
+        timeout: 30000,
     })
 }
 

@@ -50,13 +50,14 @@ export function generateVideoAsync(data: {
  * 批量异步生成视频（使用队列）
  */
 export function batchGenerateVideosAsync(data: {
-    shots: Array<{
-        id: number
-        imageUrl: string
-        lastImageUrl?: string  // 首尾帧模式的尾帧图
-        mode: VideoMode  // 必传！
+    tasks: Array<{
+        shotId?: number
+        referenceImages: string[]
+        mode: VideoMode
         model?: string
-        params?: any
+        prompt?: string
+        duration?: number
+        resolution?: string
     }>
     scriptId?: number
 }) {
