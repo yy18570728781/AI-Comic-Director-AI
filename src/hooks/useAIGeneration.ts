@@ -48,6 +48,7 @@ export interface ImageParams {
 export interface VideoParams {
   prompt?: string;
   model?: string;
+  mode?: 't2v' | 'i2v' | 'flf2v' | 'ref2v';  // 视频生成模式
   duration?: number;
   resolution?: string;
   referenceImages?: string[];
@@ -158,9 +159,20 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
   const generateVideo = useCallback(async (params: VideoParams): Promise<string | null> => {
     const { shotId, scriptId, referenceImages, ...rest } = params;
 
+    // 根据图片数量自动推断 mode（如果没传的话）
+    const imageCount = referenceImages?.length || 0;
+    let mode = rest.mode;
+    if (!mode) {
+      if (imageCount === 0) mode = 't2v';
+      else if (imageCount === 1) mode = 'i2v';
+      else if (imageCount === 2) mode = 'flf2v';
+      else mode = 'ref2v';
+    }
+
     const requestData: any = {
       prompt: rest.prompt || '',
       model: rest.model || 'doubao-seedance-1-0-lite-i2v-250428',
+      mode,
       duration: rest.duration || 5,
       resolution: rest.resolution || '720p',
       shotId,
