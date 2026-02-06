@@ -25,15 +25,16 @@ function AuthGuard({ children }: AuthGuardProps) {
 
       try {
         // 验证token有效性
-        const response = await getCurrentUser();
-        if (response?.data?.success) {
-          setCurrentUser(response.data.data);
+        const response: any = await getCurrentUser();
+        if (response?.success && response.data) {
+          setCurrentUser(response.data);
         } else {
           // token无效，清除登录状态
           logout();
         }
       } catch (error) {
         // 请求失败，清除登录状态
+        console.error('验证用户身份失败:', error);
         logout();
       } finally {
         setLoading(false);
