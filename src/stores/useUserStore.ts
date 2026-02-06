@@ -102,7 +102,7 @@ export const useUserStore = create<UserState>()(
         if (!currentUser) return;
         
         try {
-          const res = await getUserDetail(currentUser.id);
+          const res: any = await getUserDetail(currentUser.id);
           if (res.success && res.data) {
             set({
               currentUser: {
