@@ -335,7 +335,9 @@ function ScriptCharacters() {
                       <Image
                         src={character.imageUrl}
                         alt={character.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        width="100%"
+                        height={200}
+                        style={{ objectFit: 'contain' }}
                         preview={{
                           mask: (
                             <div>
