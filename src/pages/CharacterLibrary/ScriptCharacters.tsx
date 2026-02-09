@@ -41,7 +41,7 @@ import ImageGenerateModal from '../../components/ImageGenerateModal';
 import type { ImageGenerateSubmitValues } from '../../components/ImageGenerateModal';
 import { generateImageAsync } from '@/api/ai';
 import { useTaskStore } from '../../stores/useTaskStore';
-import { useModelStore } from '../../stores/useModelStore';
+import { onTaskComplete } from '../../components/GlobalTaskPoller';
 
 function ScriptCharacters() {
   const navigate = useNavigate();
@@ -50,7 +50,6 @@ function ScriptCharacters() {
   const script = location.state?.script as Script;
   const { currentUser } = useUserStore();
   const { addTask } = useTaskStore();
-  const { imageModel } = useModelStore();
 
   // 获取已保存的角色列表
   const fetchSavedCharacters = async () => {
@@ -79,12 +78,33 @@ function ScriptCharacters() {
     }
   };
 
+  const [extractedCharacters, setExtractedCharacters] = useState<ExtractedCharacter[]>([]);
+  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
+
   useEffect(() => {
     fetchSavedCharacters();
   }, []);
 
-  const [extractedCharacters, setExtractedCharacters] = useState<ExtractedCharacter[]>([]);
-  const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
+  // 监听角色图像生成任务完成 - 局部更新对应角色的 imageUrl
+  useEffect(() => {
+    const unsubscribe = onTaskComplete((event) => {
+      if (event.type === 'image' && event.characterId) {
+        // 从 result 中提取图片 URL
+        const imageUrl = event.result?.savedImage?.url
+          || event.result?.images?.[0]?.url;
+        if (!imageUrl) return;
+
+        setSavedCharacters(prev =>
+          prev.map(c =>
+            c.id === event.characterId
+              ? { ...c, imageUrl }
+              : c
+          )
+        );
+      }
+    });
+    return () => unsubscribe();
+  }, []);
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -204,7 +224,7 @@ function ScriptCharacters() {
         addTask({
           jobId: res.data.jobId,
           type: 'image',
-          shotId: selectedCharacterForImage.id,
+          characterId: selectedCharacterForImage.id,
         });
         message.info('图像生成任务已提交到队列');
         setGenerateModalVisible(false);
