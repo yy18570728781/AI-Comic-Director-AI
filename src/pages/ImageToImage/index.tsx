@@ -12,6 +12,7 @@ import {
   Tag,
   Image,
   theme,
+  Switch,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
@@ -48,6 +49,7 @@ function ImageToImage() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [batchCount, setBatchCount] = useState<number>(1);
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
 
   // 使用统一的 AI 生成 hook
   const { generateImage, tasks, generatingImageIds } = useAIGeneration({
@@ -176,6 +178,11 @@ function ImageToImage() {
         width,
         height,
         referenceImages: selectedImages,
+        ...(saveToLibrary ? {
+          saveToLibrary: true,
+          libraryName: `融图_${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+          libraryTags: ['融图', 'AI生成'],
+        } : {}),
       });
     }
   };
@@ -353,6 +360,30 @@ function ImageToImage() {
                     }}
                   >
                     💡 每次最多生成5张图片，消耗积分 = {creditsPerImage} × 数量
+                  </div>
+                </div>
+
+                {/* 保存到资源库开关 */}
+                <div>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: 8,
+                  }}>
+                    <span style={{ fontWeight: 500 }}>保存到资源库</span>
+                    <Switch 
+                      checked={saveToLibrary} 
+                      onChange={setSaveToLibrary}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: token.colorTextTertiary,
+                    }}
+                  >
+                    开启后，生成的图片将自动保存到资源库（融图类型）
                   </div>
                 </div>
 
