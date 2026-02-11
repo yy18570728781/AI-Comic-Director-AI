@@ -86,7 +86,7 @@ export default function Home() {
             </Tooltip>
             {currentUser ? (
               <>
-                <Button type="primary" danger size="small" icon={<WalletOutlined />} onClick={() => navigate('/recharge')}>
+                <Button className="topnav-recharge-btn" icon={<WalletOutlined />} onClick={() => navigate('/recharge')}>
                   积分充值
                 </Button>
                 <span className="home-nav-points">可用积分: <strong>{currentUser.points ?? 0}</strong></span>

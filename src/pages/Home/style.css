@@ -256,15 +256,15 @@
   padding: 0 36px !important;
   font-size: 16px !important;
   border-radius: 24px !important;
-  background: var(--home-btn-bg) !important;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
   border: none !important;
-  box-shadow: var(--home-btn-shadow) !important;
+  box-shadow: 0 4px 24px rgba(168, 85, 247, 0.4) !important;
   transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
 .home-cta-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: var(--home-btn-hover-shadow) !important;
+  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.5) !important;
 }
 
 .home-ghost-btn {
@@ -501,13 +501,16 @@
 
 /* 主题1 Hero badge */
 .home-hero-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 16px;
-  padding: 8px 24px;
-  background: rgba(236, 72, 153, 0.9);
-  border-radius: 8px;
-  font-size: clamp(18px, 3vw, 28px);
-  font-weight: 600;
+  padding: 0 32px;
+  height: 80px;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  border-radius: 12px;
+  font-size: clamp(20px, 3vw, 32px);
+  font-weight: 700;
   color: #fff;
   -webkit-text-fill-color: #fff;
   vertical-align: middle;

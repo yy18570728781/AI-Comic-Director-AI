@@ -56,7 +56,7 @@ export default function TopNavLayout() {
             />
           </div>
           <Space className="topnav-right">
-            <Button className="topnav-recharge-btn" size="small" icon={<WalletOutlined />} onClick={() => navigate('/recharge')}>
+            <Button className="topnav-recharge-btn" icon={<WalletOutlined />} onClick={() => navigate('/recharge')}>
               积分充值
             </Button>
             <span className="topnav-points">
