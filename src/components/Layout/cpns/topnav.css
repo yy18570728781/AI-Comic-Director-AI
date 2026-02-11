@@ -1,0 +1,126 @@
+.topnav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px !important;
+  background: rgba(6, 6, 26, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  height: 56px !important;
+  line-height: 56px !important;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  overflow: visible !important;
+}
+
+.topnav-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+  overflow: visible !important;
+}
+
+.topnav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.topnav-logo-img {
+  width: 32px;
+  height: 32px;
+}
+
+.topnav-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #a855f7, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+
+.topnav-menu {
+  background: transparent !important;
+  border-bottom: none !important;
+  line-height: 54px !important;
+  flex: 1;
+  min-width: 0;
+  overflow: visible !important;
+}
+
+.topnav-menu > .ant-menu-item,
+.topnav-menu > .ant-menu-submenu > .ant-menu-submenu-title {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 14px !important;
+}
+
+.topnav-menu > .ant-menu-item:hover,
+.topnav-menu > .ant-menu-submenu:hover > .ant-menu-submenu-title {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+.topnav-menu > .ant-menu-item-selected {
+  color: #a855f7 !important;
+  background: transparent !important;
+}
+
+.topnav-menu > .ant-menu-item-selected::after,
+.topnav-menu > .ant-menu-submenu-selected::after {
+  border-bottom-color: #a855f7 !important;
+}
+
+.topnav-menu > .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: #fff !important;
+}
+
+.topnav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.topnav-points {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.topnav-points strong {
+  color: #52c41a;
+  font-size: 15px;
+}
+
+.topnav-icon-btn {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.topnav-icon-btn:hover {
+  color: #fff !important;
+}
+
+.topnav-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.topnav-user:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.topnav-username {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+}

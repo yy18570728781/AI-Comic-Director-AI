@@ -1,7 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import AuthGuard from '@/components/AuthGuard';
 import Login from '@/pages/Login';
+import Home from '@/pages/Home';
 import AICreation from '@/pages/AICreation';
 import ScriptManagement from '@/pages/ScriptManagement';
 import ScriptDetail from '@/pages/ScriptDetail';
@@ -14,22 +15,18 @@ import ImageToImage from '@/pages/ImageToImage';
 import Recharge from '@/pages/Recharge';
 import Pay from '@/pages/Pay';
 
-function AppRouter() {
+export default function AppRouter() {
   return (
     <Routes>
-      {/* 登录页面 - 不需要认证 */}
+      {/* 独立页面 - 不需要认证 */}
       <Route path="/login" element={<Login />} />
-      
-      {/* 微信内支付页面 - 不需要认证 */}
       <Route path="/pay" element={<Pay />} />
-      
-      {/* 主应用路由 - 需要认证 */}
-      <Route path="/" element={
-        <AuthGuard>
-          <Layout />
-        </AuthGuard>
-      }>
-        <Route index element={<Navigate to="/ai-creation" replace />} />
+
+      {/* 首页 - 不需要认证，独立渲染 */}
+      <Route path="/" element={<Home />} />
+
+      {/* 主应用路由 - 需要认证，Layout 内部根据主题切换布局 */}
+      <Route element={<AuthGuard><Layout /></AuthGuard>}>
         <Route path="ai-creation" element={<AICreation />} />
         <Route path="script-management" element={<ScriptManagement />} />
         <Route path="script-management/:id" element={<ScriptDetail />} />
@@ -44,5 +41,3 @@ function AppRouter() {
     </Routes>
   );
 }
-
-export default AppRouter;

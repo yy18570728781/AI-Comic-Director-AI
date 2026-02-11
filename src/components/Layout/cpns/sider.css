@@ -1,4 +1,4 @@
-.logo {
+.sider-logo {
   height: 64px;
   display: flex;
   align-items: center;
@@ -8,13 +8,13 @@
   font-weight: bold;
 }
 
-.logo h2 {
+.sider-logo h2 {
   margin: 0;
   color: #fff;
   font-size: 18px;
 }
 
-.header-content {
+.sider-header-content {
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -22,7 +22,7 @@
   height: 100%;
 }
 
-.header-content h3 {
+.sider-header-content h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 500;
