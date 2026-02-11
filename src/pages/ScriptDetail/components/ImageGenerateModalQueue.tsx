@@ -7,7 +7,7 @@ import {
 import { useState, useEffect } from 'react';
 import { optimizeImagePrompt, generateImageAsync } from '@/api/ai';
 import { useTaskStore } from '@/stores/useTaskStore';
-import { onTaskComplete } from '@/components/GlobalTaskPoller';
+import { onTaskComplete, onTaskFailed } from '@/components/GlobalTaskPoller';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { useModelStore } from '@/stores/useModelStore';
 
@@ -64,8 +64,18 @@ export default function ImageGenerateModalQueue({
       }
     });
 
+    const unsubFailed = onTaskFailed((event) => {
+      if (event.jobId === jobId) {
+        message.error(`生成失败: ${event.error}`);
+        setGenerating(false);
+        setJobId(null);
+        setJobState('failed');
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubFailed();
     };
   }, [jobId, onSuccess, onCancel]);
 

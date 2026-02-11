@@ -3,7 +3,7 @@ import { PictureOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { batchGenerateImagesAsync } from '@/api/ai';
 import { useTaskStore } from '@/stores/useTaskStore';
-import { onTaskComplete } from '@/components/GlobalTaskPoller';
+import { onTaskComplete, onTaskFailed } from '@/components/GlobalTaskPoller';
 
 interface BatchImageGenerateExampleProps {
   shots: any[];
@@ -52,8 +52,16 @@ export default function BatchImageGenerateExample({
       }
     });
 
+    const unsubFailed = onTaskFailed((event) => {
+      if (jobIds.includes(event.jobId)) {
+        setFailedJobs((prev) => new Set(prev).add(event.jobId));
+        message.error(`任务 #${event.jobId} 失败: ${event.error}`);
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubFailed();
     };
   }, [jobIds]);
 
