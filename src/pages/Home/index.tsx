@@ -1,18 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { Button, Menu, Space, Tooltip } from 'antd';
-import type { MenuProps } from 'antd';
+import { Button, Space } from 'antd';
 import {
   ThunderboltOutlined,
   PlayCircleOutlined,
   PictureOutlined,
   EditOutlined,
-  SwapOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 import { useUserStore } from '@/stores/useUserStore';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { topMenuItems } from '@/components/Layout/menuConfig';
-import '@/components/Layout/cpns/topnav.css';
+import TopNavBar from '@/components/Layout/cpns/TopNavBar';
 import './style.css';
 
 const features = [
@@ -24,18 +20,37 @@ const features = [
 
 const workflowSteps = ['输入故事大纲', 'AI 生成分镜', '生成画面', '合成视频'];
 
+const showcaseImages = [
+  'https://cdn.jeff1992.com/ai-video/2025/09/10/20250909164452_2.jpg',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/aa81c5c4d4ca434989278335f68ea243.png',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/a180958c835e4aaa92f029bce31b0f31.png',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/5971e82c857a485a9befb80022acfe26.png',
+  'https://cdn.jeff1992.com/ai-video/2025/09/10/20250909164518_21.png',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/2af985bcd0e448359ac15279680714d0.png',
+  'https://cdn.jeff1992.com/ai-video/2026/02/11/danglaoban.jpeg',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/079c9d2fc312427d88b01a8ae6e55270.jpg',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/9b08875175164d4693a6c6d7be7a36f1.jpg',
+  'https://cdn.jeff1992.com/ai-video/2025/09/10/gongzhudianxia.jpeg',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/9f36c48412b9420c960abd9eb3053b8b.png',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/a6e65426c8c84348a880597282a82708.png',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/20/1ed762b9ef394c23b83da56dcd498a81.jpg',
+  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/20/4a54eb5db72b425187c874d1db1e9e81.jpg',
+  'https://cdn.jeff1992.com/ai-video/2026/02/11/guiyishijie.jpeg',
+  'https://cdn.jeff1992.com/ai-video/2025/11/17/sfbgl.jpg',
+  'https://cdn.jeff1992.com/ai-video/2025/11/28/eikhpn_1764323292731.png',
+  'https://cdn.jeff1992.com/ai-video/2026/01/31/古董夫君.jpeg',
+  'https://cdn.jeff1992.com/ai-video/2025/12/29/tmp621zf1_1767001537512.jpg',
+  'https://cdn.jeff1992.com/ai-video/2025/09/10/xingty4_0.jpeg',
+  'https://cdn.jeff1992.com/ai-video/2026/02/11/guizheguaitan.jpeg',
+  'https://cdn.jeff1992.com/ai-video/2026/02/11/guiyimori.jpeg',
+];
+
 export default function Home() {
   const navigate = useNavigate();
   const { currentUser } = useUserStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const { theme } = useThemeStore();
 
   const handleCTA = () => navigate(currentUser ? '/ai-creation' : '/login');
-
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    if (key.startsWith('/')) {
-      navigate(currentUser ? key : '/login');
-    }
-  };
 
   return (
     <div className="home-container" data-theme={theme}>
@@ -64,72 +79,16 @@ export default function Home() {
         ))}
       </div>
 
-      {/* ========== 主题1 导航：蓝星AI风格顶部菜单 ========== */}
-      {theme === 'theme1' && (
-        <nav className="home-nav home-nav-theme1">
-          <div className="home-nav-left">
-            <div className="home-nav-logo">
-              <img src="/image/logo2.png" alt="logo" className="home-logo-img" />
-              <span className="home-logo-text">AI 漫剧工作台</span>
-            </div>
-            <Menu
-              mode="horizontal"
-              selectedKeys={['/']}
-              items={topMenuItems}
-              onClick={handleMenuClick}
-              className="topnav-menu"
-            />
-          </div>
-          <div className="home-nav-actions">
-            <Tooltip title="切换主题">
-              <button className="home-theme-toggle" onClick={toggleTheme}><SwapOutlined /></button>
-            </Tooltip>
-            {currentUser ? (
-              <>
-                <Button className="topnav-recharge-btn" icon={<WalletOutlined />} onClick={() => navigate('/recharge')}>
-                  积分充值
-                </Button>
-                <span className="home-nav-points">可用积分: <strong>{currentUser.points ?? 0}</strong></span>
-                <span className="home-nav-username">{currentUser.username || '用户'}</span>
-              </>
-            ) : (
-              <Button type="primary" onClick={() => navigate('/login')}>登录 / 注册</Button>
-            )}
-          </div>
-        </nav>
-      )}
-
-      {/* ========== 主题2 导航：简约风格 ========== */}
-      {theme === 'theme2' && (
-        <nav className="home-nav home-nav-theme2">
-          <div className="home-nav-left">
-            <div className="home-nav-logo">
-              <img src="/image/logo2.png" alt="logo" className="home-logo-img" />
-              <span className="home-logo-text">AI 漫剧工作台</span>
-            </div>
-            <Menu
-              mode="horizontal"
-              selectedKeys={['/']}
-              items={topMenuItems}
-              onClick={handleMenuClick}
-              className="topnav-menu"
-            />
-          </div>
-          <div className="home-nav-actions">
-            <Tooltip title="切换主题">
-              <button className="home-theme-toggle" onClick={toggleTheme}><SwapOutlined /></button>
-            </Tooltip>
-            {currentUser ? (
-              <Button type="primary" size="large" onClick={() => navigate('/ai-creation')}>进入工作台</Button>
-            ) : (
-              <Button type="primary" size="large" onClick={() => navigate('/login')}>登录 / 注册</Button>
-            )}
-          </div>
-        </nav>
-      )}
+      <TopNavBar showThemeToggle />
 
       {/* Hero */}
       <section className="home-hero">
+        {theme === 'theme1' && (
+          <video className="home-hero-video" autoPlay loop muted playsInline>
+            <source src="/video/地球.mp4" type="video/mp4" />
+          </video>
+        )}
+        <div className="home-hero-overlay" />
         <div className="home-hero-glow" />
         <h1 className="home-hero-title">
           <span className="home-gradient-text">蓝星 AI</span>
@@ -149,6 +108,18 @@ export default function Home() {
             </Button>
           )}
         </Space>
+
+        {theme === 'theme1' && (
+          <div className="home-showcase">
+            <div className="home-showcase-track">
+              {[...showcaseImages, ...showcaseImages].map((src, i) => (
+                <div key={i} className="home-showcase-card">
+                  <img src={src} alt={`showcase-${i}`} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 功能卡片 */}

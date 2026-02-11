@@ -32,8 +32,8 @@
 }
 
 .topnav-logo-img {
-  width: 32px;
-  height: 32px;
+  width: auto;
+  height: 60px;
 }
 
 .topnav-logo-text {
@@ -141,4 +141,26 @@
   opacity: 0.85 !important;
   transform: translateY(-1px) !important;
   color: #fff !important;
+}
+
+/* 主题切换按钮 */
+.topnav-theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  background: rgba(139, 92, 246, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: border-color 0.3s, transform 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.topnav-theme-toggle:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: rotate(30deg);
 }

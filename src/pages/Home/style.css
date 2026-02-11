@@ -124,73 +124,12 @@
   100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
 }
 
-/* ==================== 导航 ==================== */
-.home-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 48px;
-  backdrop-filter: blur(20px);
-  background: var(--home-nav-bg);
-  border-bottom: 1px solid var(--home-nav-border);
-}
 
-.home-nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.home-logo-img {
-  width: 36px;
-  height: 36px;
-}
-
-.home-logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--home-accent-start), var(--home-accent-end));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.home-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* 主题切换按钮 */
-.home-theme-toggle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--home-card-border);
-  background: var(--home-card-bg);
-  color: var(--home-text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: border-color 0.3s, transform 0.3s;
-  backdrop-filter: blur(10px);
-}
-
-.home-theme-toggle:hover {
-  border-color: var(--home-card-hover-border);
-  transform: rotate(30deg);
-}
 
 /* ==================== Hero ==================== */
 .home-hero {
   position: relative;
+
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -199,6 +138,66 @@
   min-height: 100vh;
   text-align: center;
   padding: 120px 24px 80px;
+  overflow: hidden;
+}
+
+.home-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+}
+
+.home-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 6, 26, 0.35);
+  z-index: -1;
+}
+
+/* 作品展示轮播 */
+.home-showcase {
+  position: relative;
+  top: 50px;
+  width: 100vw;
+  margin-top: 60px;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+.home-showcase-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: scrollShowcase 30s linear infinite;
+}
+
+.home-showcase-card {
+  flex-shrink: 0;
+  width: 180px;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s;
+}
+
+.home-showcase-card:hover {
+  transform: scale(1.05);
+}
+
+.home-showcase-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes scrollShowcase {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .home-hero-glow {
@@ -445,78 +444,22 @@
   }
 }
 
-/* ==================== 主题1 顶部导航（蓝星AI风格） ==================== */
-.home-nav-theme1 {
-  padding: 0 32px !important;
-  height: 56px;
-}
 
-.home-nav-left {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-}
-
-.home-topnav-links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.home-topnav-link {
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.home-topnav-link:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.home-topnav-link.active {
-  color: #fff;
-  background: rgba(139, 92, 246, 0.2);
-}
-
-.home-nav-points {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 13px;
-}
-
-.home-nav-points strong {
-  color: #52c41a;
-  font-size: 15px;
-}
-
-.home-nav-username {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
-}
-
-/* 主题1 Hero badge */
 .home-hero-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-left: 16px;
+  margin-left: 48px;
   padding: 0 32px;
   height: 80px;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  background: linear-gradient(135deg, #d946ef, #7c3aed, #4f46e5);
   border-radius: 12px;
   font-size: clamp(20px, 3vw, 32px);
   font-weight: 700;
   color: #fff;
   -webkit-text-fill-color: #fff;
   vertical-align: middle;
+  box-shadow: 0 4px 20px rgba(217, 70, 239, 0.4);
 }
 
-/* 主题2 导航保持简约 */
-.home-nav-theme2 {
-  padding: 16px 48px;
-}
+
