@@ -50,7 +50,7 @@ export default function ImageBlendModal({
 
       // 立即关闭弹窗，不等待后端响应
       onCancel();
-      
+
       // 异步提交（不阻塞）
       onSubmit({
         ...values,
@@ -93,7 +93,7 @@ export default function ImageBlendModal({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: '1fr 1fr 1fr',
                 gap: 12,
               }}
             >
@@ -119,6 +119,37 @@ export default function ImageBlendModal({
                 </div>
                 <div style={{ fontSize: 12, color: '#999' }}>
                   多图融合，角色一致（推荐）
+                </div>
+              </div>
+
+              <div
+                onClick={() =>
+                  form.setFieldsValue({
+                    model: 'gemini-2.5-flash-image-preview',
+                  })
+                }
+                style={{
+                  padding: '16px',
+                  border: '2px solid',
+                  borderColor:
+                    form.getFieldValue('model') ===
+                    'gemini-2.5-flash-image-preview'
+                      ? '#1890ff'
+                      : '#d9d9d9',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                }}
+              >
+                <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                  Gemini 2.5 Flash
+                  {form.getFieldValue('model') ===
+                    'gemini-2.5-flash-image-preview' && (
+                    <span style={{ color: '#1890ff', marginLeft: 8 }}>✓</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#999' }}>
+                  Google 最新，快速高效
                 </div>
               </div>
 
