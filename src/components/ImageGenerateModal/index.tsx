@@ -1,9 +1,11 @@
-import { Modal, Form, Input, Select, Button, message } from 'antd';
-import { ThunderboltOutlined, PictureOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { Modal, Form, Input, Select, Button, message, Spin } from 'antd';
+import { ThunderboltOutlined, PictureOutlined, UserOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
 import { optimizeImagePrompt } from '@/api/ai';
+import { getCharacterList } from '@/api/script';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { useModelStore } from '@/stores/useModelStore';
+import { useUserStore } from '@/stores/useUserStore';
 
 const { TextArea } = Input;
 
@@ -53,8 +55,34 @@ export default function ImageGenerateModal({
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
+  const [characters, setCharacters] = useState<any[]>([]);
+  const [loadingCharacters, setLoadingCharacters] = useState(false);
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<number[]>([]);
 
   const { imageModel } = useModelStore();
+  const { currentUser } = useUserStore();
+
+  // 加载角色列表
+  useEffect(() => {
+    if (visible && currentUser?.id) {
+      loadCharacters();
+    }
+  }, [visible, currentUser?.id]);
+
+  const loadCharacters = async () => {
+    setLoadingCharacters(true);
+    try {
+      const res = await getCharacterList({
+        userId: currentUser?.id,
+        pageSize: 100,
+      });
+      setCharacters(res.data?.list || []);
+    } catch (error) {
+      console.error('加载角色列表失败:', error);
+    } finally {
+      setLoadingCharacters(false);
+    }
+  };
 
   // 当弹窗打开时，初始化表单
   const handleOpen = () => {
@@ -67,6 +95,50 @@ export default function ImageGenerateModal({
       ...initialValues,
     });
     setReferenceImages([]);
+    setSelectedCharacterIds([]);
+  };
+
+  // 处理角色选择变化
+  const handleCharacterChange = (characterIds: number[]) => {
+    const prevIds = selectedCharacterIds;
+    setSelectedCharacterIds(characterIds);
+    
+    // 找出新增和删除的角色
+    const addedIds = characterIds.filter(id => !prevIds.includes(id));
+    const removedIds = prevIds.filter(id => !characterIds.includes(id));
+    
+    // 获取新增角色的图片 URL
+    const addedImages = characters
+      .filter(char => addedIds.includes(char.id) && char.imageUrl)
+      .map(char => char.imageUrl);
+    
+    // 获取删除角色的图片 URL
+    const removedImages = characters
+      .filter(char => removedIds.includes(char.id) && char.imageUrl)
+      .map(char => char.imageUrl);
+    
+    // 更新参考图列表
+    setReferenceImages(prev => {
+      // 先移除被删除角色的图片
+      let updated = prev.filter(url => !removedImages.includes(url));
+      // 再添加新增角色的图片（去重）
+      const allImages = [...updated, ...addedImages];
+      return Array.from(new Set(allImages));
+    });
+  };
+
+  // 处理删除参考图
+  const handleRemoveReferenceImage = (index: number) => {
+    const removedUrl = referenceImages[index];
+    
+    // 从参考图列表中删除
+    setReferenceImages(prev => prev.filter((_, i) => i !== index));
+    
+    // 如果删除的图片是某个角色的图片，也要取消选中该角色
+    const characterToRemove = characters.find(char => char.imageUrl === removedUrl);
+    if (characterToRemove) {
+      setSelectedCharacterIds(prev => prev.filter(id => id !== characterToRemove.id));
+    }
   };
 
   // AI 优化图像提示词
@@ -257,12 +329,34 @@ export default function ImageGenerateModal({
             label="参考图（可选）"
             extra="选择参考图片，AI 将基于参考图生成相似风格的图像"
           >
+            {/* 角色选择器 */}
+            <Form.Item noStyle>
+              <Select
+                mode="multiple"
+                placeholder="选择角色（可多选）"
+                value={selectedCharacterIds}
+                onChange={handleCharacterChange}
+                loading={loadingCharacters}
+                style={{ width: '100%', marginBottom: 8 }}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={characters.map(char => ({
+                  label: char.name,
+                  value: char.id,
+                }))}
+                suffixIcon={<UserOutlined />}
+                notFoundContent={loadingCharacters ? <Spin size="small" /> : '暂无角色'}
+              />
+            </Form.Item>
+
             <Button
               icon={<PictureOutlined />}
               onClick={() => setSelectorVisible(true)}
               style={{ marginBottom: 8 }}
             >
-              选择参考图{' '}
+              选择其他参考图{' '}
               {referenceImages.length > 0 && `(${referenceImages.length})`}
             </Button>
             {referenceImages.length > 0 && (
@@ -278,16 +372,13 @@ export default function ImageGenerateModal({
                   <div
                     key={index}
                     style={{
+                      position: 'relative',
                       width: 80,
                       height: 80,
                       borderRadius: 4,
                       overflow: 'hidden',
                       border: '1px solid #d9d9d9',
                       cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setPreviewImage(url);
-                      setPreviewOpen(true);
                     }}
                   >
                     <img
@@ -298,7 +389,30 @@ export default function ImageGenerateModal({
                         height: '100%',
                         objectFit: 'cover',
                       }}
+                      onClick={() => {
+                        setPreviewImage(url);
+                        setPreviewOpen(true);
+                      }}
                     />
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        padding: '0 4px',
+                        fontSize: 12,
+                        background: 'rgba(255,255,255,0.9)',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveReferenceImage(index);
+                      }}
+                    >
+                      ×
+                    </Button>
                   </div>
                 ))}
               </div>
