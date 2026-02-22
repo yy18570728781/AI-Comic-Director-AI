@@ -200,19 +200,25 @@ function ScriptCharacters() {
 
     setGenerateLoading(true);
     try {
-      let width = 1024;
-      let height = 1024;
-      if (values.model === 'doubao-seedream-4-5-251128') {
-        width = 1920;
-        height = 1920;
-      }
+      // 根据 aspectRatio 计算 width 和 height
+      const aspectRatioMap: Record<string, { width: number; height: number }> = {
+        '1:1': { width: 1024, height: 1024 },
+        '16:9': { width: 1280, height: 720 },
+        '9:16': { width: 720, height: 1280 },
+        '3:4': { width: 768, height: 1152 },
+      };
+
+      const { width, height } = aspectRatioMap[values.aspectRatio] || { width: 1024, height: 1024 };
+
+      // 优化角色提示词：生成三视图
+      const optimizedPrompt = `${values.imagePrompt}，角色设计三视图（正面、侧面、背面），纯白色背景，角色站立姿势，全身展示，清晰的角色设计参考图，高质量，2D动漫风格`;
 
       const res = await generateImageAsync({
-        prompt: values.imagePrompt,
+        prompt: optimizedPrompt,
         model: values.model,
         width,
         height,
-        referenceImages: values.referenceImages.length > 0 ? values.referenceImages : undefined,
+        referenceImages: values.referenceImages?.length > 0 ? values.referenceImages : undefined,
         scriptId: scriptId ? parseInt(scriptId) : undefined,
         characterId: selectedCharacterForImage.id,
         saveToLibrary: true,
@@ -658,8 +664,10 @@ function ScriptCharacters() {
         visible={generateModalVisible}
         title={selectedCharacterForImage ? `生成角色图像 - ${selectedCharacterForImage.name}` : '生成图像'}
         initialValues={{
-          shotType: '近景',
+          shotType: '全景',
+          scene: '纯白色背景',
           imagePrompt: selectedCharacterForImage?.description || '',
+          aspectRatio: '1:1',
         }}
         scriptId={scriptId ? parseInt(scriptId) : undefined}
         loading={generateLoading}
