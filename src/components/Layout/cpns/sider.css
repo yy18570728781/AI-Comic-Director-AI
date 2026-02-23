@@ -1,17 +1,56 @@
+/* 科技风格侧边栏 */
+.ant-layout-sider {
+  background: linear-gradient(180deg, #0a1929 0%, #1a2332 100%) !important;
+  box-shadow: 2px 0 8px rgba(0, 188, 212, 0.15);
+}
+
+.ant-layout-sider .ant-menu-dark {
+  background: transparent !important;
+}
+
+.ant-layout-sider .ant-menu-dark .ant-menu-item {
+  background: transparent !important;
+  color: #8ba3b8 !important;
+  transition: all 0.3s ease;
+}
+
+.ant-layout-sider .ant-menu-dark .ant-menu-item:hover {
+  background: rgba(0, 188, 212, 0.1) !important;
+  color: #00bcd4 !important;
+}
+
+.ant-layout-sider .ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 188, 212, 0.2) 0%,
+    rgba(0, 188, 212, 0.05) 100%
+  ) !important;
+  color: #00e5ff !important;
+  border-right: 3px solid #00bcd4;
+}
+
+.ant-layout-sider .ant-menu-dark .ant-menu-item-selected .anticon {
+  color: #00e5ff !important;
+}
+
 .sider-logo {
   height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  gap: 12px;
+  color: #00e5ff;
   font-size: 18px;
   font-weight: bold;
+  background: rgba(0, 188, 212, 0.08);
+  border-bottom: 1px solid rgba(0, 188, 212, 0.2);
 }
 
 .sider-logo h2 {
   margin: 0;
-  color: #fff;
+  color: #00e5ff;
   font-size: 18px;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
 }
 
 .sider-header-content {
@@ -26,4 +65,8 @@
   margin: 0;
   font-size: 18px;
   font-weight: 500;
+  background: linear-gradient(90deg, #00bcd4 0%, #0288d1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
