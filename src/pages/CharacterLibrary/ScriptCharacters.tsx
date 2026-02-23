@@ -211,7 +211,8 @@ function ScriptCharacters() {
       const { width, height } = aspectRatioMap[values.aspectRatio] || { width: 1024, height: 1024 };
 
       // 优化角色提示词：生成三视图
-      const optimizedPrompt = `${values.imagePrompt}，角色设计三视图（正面、侧面、背面），纯白色背景，角色站立姿势，全身展示，清晰的角色设计参考图，高质量，2D动漫风格`;
+      const optimizedPrompt = `${values.imagePrompt}，生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正试图、侧视图、后视图，白色背景，图片无文字`;
+      // const optimizedPrompt = `${values.imagePrompt}，3D超写实CG，虚幻5引擎渲染，电影级画质，细腻的皮肤纹理。生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正试图、侧视图、后视图，白色背景，图片无文字`;
 
       const res = await generateImageAsync({
         prompt: optimizedPrompt,
