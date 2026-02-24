@@ -218,7 +218,7 @@ export const emptyStates = {
     description: '系统会从剧本内容和分镜数据中自动识别和提取角色信息',
   },
   loading: {
-    title: '正在分析剧本内容和分镜数据，提取角色信息...',
+    title: '正在分析剧本内容和分镜数据，提取角色信息...请勿离开',
   },
   noCharacters: {
     title: '未能从该剧本中提取到角色信息',

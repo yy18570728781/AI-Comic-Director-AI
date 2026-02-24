@@ -163,6 +163,32 @@ function ScriptCharacters() {
       return;
     }
 
+    // 检查是否有重复的角色名
+    const duplicateNames = charactersToSave
+      .map(c => c.name)
+      .filter(name => savedCharacters.some(saved => saved.name === name));
+
+    if (duplicateNames.length > 0) {
+      Modal.warning({
+        title: '存在重复角色',
+        content: (
+          <div>
+            <p>以下角色已存在于角色库中，无法重复保存：</p>
+            <ul style={{ marginTop: 8, marginBottom: 8 }}>
+              {duplicateNames.map(name => (
+                <li key={name} style={{ color: '#ff4d4f' }}>{name}</li>
+              ))}
+            </ul>
+            <p style={{ marginTop: 12, color: '#666' }}>
+              请先删除已存在的角色，或取消勾选这些角色后再保存。
+            </p>
+          </div>
+        ),
+        okText: '知道了',
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await batchSaveCharacters(
@@ -585,6 +611,7 @@ function ScriptCharacters() {
                 >
                   {extractedCharacters.map((character) => {
                     const isSelected = selectedCharacters.includes(character.name);
+                    const isDuplicate = savedCharacters.some(saved => saved.name === character.name);
                     return (
                       <Card
                         key={character.name}
@@ -594,6 +621,7 @@ function ScriptCharacters() {
                           overflow: 'hidden',
                           border: isSelected ? '2px solid #1890ff' : '1px solid #d9d9d9',
                           cursor: 'pointer',
+                          opacity: isDuplicate ? 0.7 : 1,
                         }}
                         onClick={() => {
                           if (isSelected) {
@@ -631,6 +659,19 @@ function ScriptCharacters() {
                               style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
                               onClick={(e) => e.stopPropagation()}
                             />
+                            {isDuplicate && (
+                              <Tag
+                                color="warning"
+                                style={{
+                                  position: 'absolute',
+                                  top: 8,
+                                  left: 8,
+                                  margin: 0,
+                                }}
+                              >
+                                已存在
+                              </Tag>
+                            )}
                           </div>
                         }
                       >
