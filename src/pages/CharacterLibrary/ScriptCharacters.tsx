@@ -19,11 +19,14 @@ import {
   UserOutlined,
   PictureOutlined,
   UploadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import {
   extractCharacters,
   batchSaveCharacters,
   getCharacterList,
+  deleteCharacter,
+  updateCharacterLibrary,
 } from '@/api/script';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Script } from '../../stores/useScriptStore';
@@ -38,7 +41,7 @@ import {
   confirmDialogs,
 } from './ScriptCharacters/config';
 import ImageGenerateModal from '../../components/ImageGenerateModal';
-import type { ImageGenerateSubmitValues } from '../../components/ImageGenerateModal';
+import type { ImageGenerateSubmitValues, ImageGenerateFormValues } from '../../components/ImageGenerateModal';
 import { generateImageAsync } from '@/api/ai';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { onTaskComplete } from '../../components/GlobalTaskPoller';
@@ -170,14 +173,6 @@ function ScriptCharacters() {
       if (response.success) {
         message.success(messages.saveSuccess(charactersToSave.length));
         fetchSavedCharacters();
-        Modal.confirm({
-          ...confirmDialogs.saveSuccess,
-          onOk: () => {
-            setExtractedCharacters([]);
-            setSelectedCharacters([]);
-            setHasExtracted(false);
-          },
-        });
       } else {
         message.error(response.message || messages.saveError);
       }
@@ -205,19 +200,19 @@ function ScriptCharacters() {
 
     setGenerateLoading(true);
     try {
-      // 根据 aspectRatio 计算 width 和 height
-      const aspectRatioMap: Record<string, { width: number; height: number }> = {
+      const { width, height } = {
         '1:1': { width: 1024, height: 1024 },
         '16:9': { width: 1280, height: 720 },
         '9:16': { width: 720, height: 1280 },
         '3:4': { width: 768, height: 1152 },
-      };
+      }[values.aspectRatio] || { width: 1024, height: 1024 };
 
-      const { width, height } = aspectRatioMap[values.aspectRatio] || { width: 1024, height: 1024 };
-
-      // 优化角色提示词：生成三视图
       const optimizedPrompt = `${values.imagePrompt}，生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正试图、侧视图、后视图，白色背景，图片无文字`;
-      // const optimizedPrompt = `${values.imagePrompt}，3D超写实CG，虚幻5引擎渲染，电影级画质，细腻的皮肤纹理。生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正试图、侧视图、后视图，白色背景，图片无文字`;
+
+      // 保存提示词到角色库
+      await updateCharacterLibrary(selectedCharacterForImage.id, {
+        description: values.imagePrompt,
+      });
 
       const res = await generateImageAsync({
         prompt: optimizedPrompt,
@@ -250,6 +245,52 @@ function ScriptCharacters() {
     } finally {
       setGenerateLoading(false);
     }
+  };
+
+  // 保存提示词
+  const handleSavePrompt = async (values: ImageGenerateFormValues) => {
+    if (!selectedCharacterForImage) return;
+
+    try {
+      await updateCharacterLibrary(selectedCharacterForImage.id, {
+        description: values.imagePrompt,
+      });
+      message.success('提示词已保存');
+      fetchSavedCharacters();
+    } catch (error: any) {
+      console.error('保存提示词失败:', error);
+      message.error('保存提示词失败');
+    }
+  };
+
+  // 删除角色
+  const handleDeleteCharacter = async (character: SavedCharacter) => {
+    if (!currentUser) {
+      message.error('请先登录');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除角色"${character.name}"吗？此操作不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await deleteCharacter(character.id, currentUser.id);
+          if (response.success) {
+            message.success('删除成功');
+            fetchSavedCharacters();
+          } else {
+            message.error(response.message || '删除失败');
+          }
+        } catch (error: any) {
+          console.error('删除角色失败:', error);
+          message.error('删除失败');
+        }
+      },
+    });
   };
 
   return (
@@ -450,6 +491,14 @@ function ScriptCharacters() {
                           onClick={() => message.info('图像上传功能开发中...')}
                         >
                           上传图像
+                        </Button>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDeleteCharacter(character)}
+                        >
+                          删除
                         </Button>
                       </div>
                     </div>
@@ -665,7 +714,7 @@ function ScriptCharacters() {
         )}
       </Card>
 
-      {/* 角色图像生成弹窗 - 使用通用组件，不传 onSave（角色库不需要保存按钮） */}
+      {/* 角色图像生成弹窗 - 使用通用组件，传入 onSave 保存提示词 */}
       <ImageGenerateModal
         visible={generateModalVisible}
         title={selectedCharacterForImage ? `生成角色图像 - ${selectedCharacterForImage.name}` : '生成图像'}
@@ -682,6 +731,7 @@ function ScriptCharacters() {
           setSelectedCharacterForImage(null);
         }}
         onSubmit={handleImageSubmit}
+        onSave={handleSavePrompt}
       />
     </div>
   );

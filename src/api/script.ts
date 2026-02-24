@@ -160,3 +160,25 @@ export function getCharacterDetail(id: number) {
         method: 'get',
     })
 }
+
+/**
+ * 删除角色
+ */
+export function deleteCharacter(id: number, userId: number) {
+    return request({
+        url: `/api/character-library/${id}`,
+        method: 'delete',
+        params: { userId },
+    })
+}
+
+/**
+ * 更新角色
+ */
+export function updateCharacterLibrary(id: number, data: any) {
+    return request({
+        url: `/api/character-library/${id}`,
+        method: 'put',
+        data,
+    })
+}
