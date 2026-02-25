@@ -44,7 +44,11 @@ export default function ImageGenerateModalQueue({
   const [jobState, setJobState] = useState<string>('');
 
   // 获取全局选择的图像模型
-  const { imageModel } = useModelStore();
+  const { imageModel, imageModels } = useModelStore();
+
+  // 计算所需积分
+  const selectedModel = imageModels.find(m => m.id === imageModel);
+  const requiredCredits = selectedModel?.creditsPerImage || 0;
 
   // 使用全局任务 store
   const { addTask } = useTaskStore();
@@ -206,7 +210,7 @@ export default function ImageGenerateModalQueue({
             onClick={handleGenerate}
             loading={generating}
           >
-            {generating ? '生成中...' : '生成图像'}
+            {generating ? '生成中...' : `生成图像 (${requiredCredits}积分)`}
           </Button>,
         ]}
       >

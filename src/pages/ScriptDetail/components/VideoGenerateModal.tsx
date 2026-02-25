@@ -56,7 +56,16 @@ export default function VideoGenerateModal({
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
 
   // 获取全局选择的视频模型
-  const { videoModel } = useModelStore();
+  const { videoModel, videoModels } = useModelStore();
+
+  // 计算所需积分（基于当前表单的时长和分辨率）
+  const duration = Form.useWatch('duration', form) || 5;
+  const resolution = Form.useWatch('resolution', form) || '720p';
+  
+  const selectedModel = videoModels.find(m => m.id === videoModel);
+  const pricingTier = selectedModel?.pricing?.find(p => p.resolution === resolution);
+  const creditsPerSecond = pricingTier?.creditsPerSecond || 2;
+  const requiredCredits = creditsPerSecond * duration;
 
   // 获取模型列表
   useEffect(() => {
@@ -211,7 +220,7 @@ export default function VideoGenerateModal({
           onClick={handleSubmit}
           icon={<ThunderboltOutlined />}
         >
-          生成视频
+          生成视频 ({requiredCredits}积分)
         </Button>,
       ]}
     >
