@@ -89,21 +89,21 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
     const unsubComplete = onTaskComplete((event) => {
       if (event.type === 'image') {
         const image: GeneratedImage = {
-          id: event.result?.savedImage?.id || Date.now(),
+          id: event.result?.savedImage?.id,
           url: event.result?.savedImage?.url || event.result?.images?.[0]?.url,
           shotId: event.shotId,
         };
-        if (image.url) {
+        if (image.url && image.id) {
           onImageComplete?.(image, event.shotId);
           if (showMessage) message.success('图片生成完成！');
         }
       } else if (event.type === 'video') {
         const video: GeneratedVideo = {
-          id: event.result?.savedVideo?.id || Date.now(),
+          id: event.result?.savedVideo?.id,
           url: event.result?.savedVideo?.url || event.result?.url,
           shotId: event.shotId,
         };
-        if (video.url) {
+        if (video.url && video.id) {
           onVideoComplete?.(video, event.shotId);
           if (showMessage) message.success('视频生成完成！');
         }

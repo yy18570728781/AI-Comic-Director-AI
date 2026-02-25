@@ -86,10 +86,14 @@ function ScriptDetail() {
     generatingVideoIds 
   } = useAIGeneration({
     onImageComplete: (image, shotId) => {
-      if (shotId) updateShotImage(shotId, image);
+      if (shotId && image?.id) {
+        updateShotImage(shotId, image);
+      }
     },
     onVideoComplete: (video, shotId) => {
-      if (shotId) updateShotVideo(shotId, video);
+      if (shotId && video?.id) {
+        updateShotVideo(shotId, video);
+      }
     },
   });
 
