@@ -343,8 +343,9 @@ export default function ImageGenerateModal({
                   (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                 }
                 options={characters.map(char => ({
-                  label: char.name,
+                  label: `${char.name}${char.variant && char.variant !== '默认' ? ` (${char.variant})` : ''}`,
                   value: char.id,
+                  disabled: !char.imageUrl,
                 }))}
                 suffixIcon={<UserOutlined />}
                 notFoundContent={loadingCharacters ? <Spin size="small" /> : '暂无角色'}

@@ -84,6 +84,7 @@ function ScriptCharacters() {
 
   const [extractedCharacters, setExtractedCharacters] = useState<ExtractedCharacter[]>([]);
   const [savedCharacters, setSavedCharacters] = useState<SavedCharacter[]>([]);
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSavedCharacters();
@@ -109,7 +110,6 @@ function ScriptCharacters() {
     });
     return () => unsubscribe();
   }, []);
-  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -133,7 +133,10 @@ function ScriptCharacters() {
       if (response.success) {
         const characters = response.data.characters || [];
         setExtractedCharacters(characters);
-        setSelectedCharacters(characters.map((c: ExtractedCharacter) => c.name));
+        // 使用 characterGroup-variant 作为唯一标识
+        setSelectedCharacters(characters.map((c: ExtractedCharacter) => 
+          `${c.characterGroup || c.name}-${c.variant || '默认'}`
+        ));
         setHasExtracted(true);
         message.success(messages.extractSuccess(characters.length));
       } else {
@@ -155,7 +158,7 @@ function ScriptCharacters() {
     }
 
     const charactersToSave = extractedCharacters.filter((c) =>
-      selectedCharacters.includes(c.name),
+      selectedCharacters.includes(`${c.characterGroup || c.name}-${c.variant || '默认'}`),
     );
 
     if (charactersToSave.length === 0) {
@@ -163,24 +166,30 @@ function ScriptCharacters() {
       return;
     }
 
-    // 检查是否有重复的角色名
-    const duplicateNames = charactersToSave
-      .map(c => c.name)
-      .filter(name => savedCharacters.some(saved => saved.name === name));
+    // 检查是否有重复的角色形态（characterGroup-variant 组合）
+    const duplicateKeys = charactersToSave
+      .map(c => `${c.characterGroup || c.name}-${c.variant || '默认'}`)
+      .filter(key => {
+        const [group, variant] = key.split('-');
+        return savedCharacters.some(saved => 
+          (saved.characterGroup || saved.name) === group && 
+          (saved.variant || '默认') === variant
+        );
+      });
 
-    if (duplicateNames.length > 0) {
+    if (duplicateKeys.length > 0) {
       Modal.warning({
-        title: '存在重复角色',
+        title: '存在重复角色形态',
         content: (
           <div>
-            <p>以下角色已存在于角色库中，无法重复保存：</p>
+            <p>以下角色形态已存在于角色库中，无法重复保存：</p>
             <ul style={{ marginTop: 8, marginBottom: 8 }}>
-              {duplicateNames.map(name => (
-                <li key={name} style={{ color: '#ff4d4f' }}>{name}</li>
+              {duplicateKeys.map(key => (
+                <li key={key} style={{ color: '#ff4d4f' }}>{key}</li>
               ))}
             </ul>
             <p style={{ marginTop: 12, color: '#666' }}>
-              请先删除已存在的角色，或取消勾选这些角色后再保存。
+              请先删除已存在的角色形态，或取消勾选这些角色后再保存。
             </p>
           </div>
         ),
@@ -296,9 +305,13 @@ function ScriptCharacters() {
       return;
     }
 
+    const variantText = character.variant && character.variant !== '默认' 
+      ? ` (${character.variant})` 
+      : '';
+
     Modal.confirm({
       title: '确认删除',
-      content: `确定要删除角色"${character.name}"吗？此操作不可恢复。`,
+      content: `确定要删除角色"${character.name}${variantText}"吗？此操作不可恢复。`,
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
@@ -469,10 +482,24 @@ function ScriptCharacters() {
                       }}
                     >
                       {character.name}
+                      {character.variant && character.variant !== '默认' && (
+                        <Tag color="purple" style={{ marginLeft: 8, fontSize: 12 }}>
+                          {character.variant}
+                        </Tag>
+                      )}
                     </div>
                   }
                   description={
                     <div>
+                      {character.tags && character.tags.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          {character.tags.map((tag, idx) => (
+                            <Tag key={idx} color="blue" style={{ fontSize: 11, marginBottom: 4 }}>
+                              {tag}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
                       {character.description && (
                         <div
                           style={{
@@ -610,11 +637,15 @@ function ScriptCharacters() {
                   }}
                 >
                   {extractedCharacters.map((character) => {
-                    const isSelected = selectedCharacters.includes(character.name);
-                    const isDuplicate = savedCharacters.some(saved => saved.name === character.name);
+                    const characterKey = `${character.characterGroup || character.name}-${character.variant || '默认'}`;
+                    const isSelected = selectedCharacters.includes(characterKey);
+                    const isDuplicate = savedCharacters.some(saved => 
+                      (saved.characterGroup || saved.name) === (character.characterGroup || character.name) &&
+                      (saved.variant || '默认') === (character.variant || '默认')
+                    );
                     return (
                       <Card
-                        key={character.name}
+                        key={characterKey}
                         hoverable
                         style={{
                           borderRadius: 8,
@@ -625,9 +656,9 @@ function ScriptCharacters() {
                         }}
                         onClick={() => {
                           if (isSelected) {
-                            setSelectedCharacters((prev) => prev.filter((name) => name !== character.name));
+                            setSelectedCharacters((prev) => prev.filter((key) => key !== characterKey));
                           } else {
-                            setSelectedCharacters((prev) => [...prev, character.name]);
+                            setSelectedCharacters((prev) => [...prev, characterKey]);
                           }
                         }}
                         cover={
@@ -687,10 +718,24 @@ function ScriptCharacters() {
                               }}
                             >
                               {character.name}
+                              {character.variant && character.variant !== '默认' && (
+                                <Tag color="purple" style={{ marginLeft: 8, fontSize: 12 }}>
+                                  {character.variant}
+                                </Tag>
+                              )}
                             </div>
                           }
                           description={
                             <div>
+                              {character.tags && character.tags.length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                  {character.tags.map((tag, idx) => (
+                                    <Tag key={idx} color="blue" style={{ fontSize: 11, marginBottom: 4 }}>
+                                      {tag}
+                                    </Tag>
+                                  ))}
+                                </div>
+                              )}
                               {character.description && (
                                 <div
                                   style={{
@@ -758,7 +803,15 @@ function ScriptCharacters() {
       {/* 角色图像生成弹窗 - 使用通用组件，传入 onSave 保存提示词 */}
       <ImageGenerateModal
         visible={generateModalVisible}
-        title={selectedCharacterForImage ? `生成角色图像 - ${selectedCharacterForImage.name}` : '生成图像'}
+        title={
+          selectedCharacterForImage 
+            ? `生成角色图像 - ${selectedCharacterForImage.name}${
+                selectedCharacterForImage.variant && selectedCharacterForImage.variant !== '默认' 
+                  ? ` (${selectedCharacterForImage.variant})` 
+                  : ''
+              }` 
+            : '生成图像'
+        }
         initialValues={{
           shotType: '全景',
           scene: '纯白色背景',
