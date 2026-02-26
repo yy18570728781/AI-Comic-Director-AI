@@ -11,6 +11,9 @@ export interface ExtractedCharacter {
   scenes: string[];
   dialogueCount: number;
   imagePrompt?: string;
+  variant?: string;
+  characterGroup?: string;
+  tags?: string[];
 }
 
 export interface SavedCharacter {
@@ -23,6 +26,9 @@ export interface SavedCharacter {
   userId: number;
   createdAt: string;
   updatedAt: string;
+  variant?: string;
+  characterGroup?: string;
+  tags?: string[];
 }
 
 /**
