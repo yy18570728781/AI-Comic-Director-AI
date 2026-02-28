@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 
 import VideoGenerateModal from './VideoGenerateModal';
+import { useVideoModelSupport } from '@/hooks/useVideoModelSupport';
 
 interface ShotImage {
   id: number;
@@ -57,6 +58,9 @@ export default function ImagesTab({
 }: ImagesTabProps) {
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentShot, setCurrentShot] = useState<Shot | null>(null);
+
+  // 获取当前视频模型支持的功能
+  const { supportsFirstLastFrame } = useVideoModelSupport();
 
   // 打开视频生成弹窗
   const handleOpenVideoModal = (shot: Shot) => {
@@ -188,49 +192,51 @@ export default function ImagesTab({
               )}
             </div>
 
-            {/* 尾帧 */}
-            <div
-              style={{
-                flex: 1,
-                position: 'relative',
-                backgroundColor: '#e6f7ff',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Tag
-                color="#1890ff"
+            {/* 尾帧 - 仅支持首尾帧的模型显示 */}
+            {supportsFirstLastFrame && (
+              <div
                 style={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 4,
-                  zIndex: 10,
-                  margin: 0,
+                  flex: 1,
+                  position: 'relative',
+                  backgroundColor: '#e6f7ff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                尾帧
-              </Tag>
-              {shot.images?.find((img: any) => img && img.isLastFrame) ? (
-                <Image
-                  src={
-                    shot.images.find((img: any) => img && img.isLastFrame)?.url
-                  }
-                  alt="尾帧"
+                <Tag
+                  color="#1890ff"
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
+                    position: 'absolute',
+                    top: 4,
+                    left: 4,
+                    zIndex: 10,
+                    margin: 0,
                   }}
-                  preview={{
-                    mask: '尾帧',
-                  }}
-                />
-              ) : (
-                <span style={{ color: '#096dd9', fontSize: 12 }}>未设置</span>
-              )}
-            </div>
+                >
+                  尾帧
+                </Tag>
+                {shot.images?.find((img: any) => img && img.isLastFrame) ? (
+                  <Image
+                    src={
+                      shot.images.find((img: any) => img && img.isLastFrame)?.url
+                    }
+                    alt="尾帧"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                    preview={{
+                      mask: '尾帧',
+                    }}
+                  />
+                ) : (
+                  <span style={{ color: '#096dd9', fontSize: 12 }}>未设置</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 提示词显示 */}

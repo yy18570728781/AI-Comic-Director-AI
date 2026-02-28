@@ -9,9 +9,11 @@ import {
   InputNumber,
   Tag,
   Switch,
+  Image,
 } from 'antd';
 import { ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
+import { useVideoModelSupport } from '@/hooks/useVideoModelSupport';
 import { getModelList } from '@/api/model';
 
 const { TextArea } = Input;
@@ -32,6 +34,7 @@ interface ModelConfig {
     resolutions?: string[];
     aspectRatios?: string[];
     durations?: number[];
+    supportedModes?: string[];  // 添加这个属性
     supportFirstLastFrame?: boolean;
     supportCameraMovement?: boolean;
     supportWatermark?: boolean;
@@ -57,6 +60,9 @@ export default function VideoGenerateModal({
 
   // 获取全局选择的视频模型
   const { videoModel, videoModels } = useModelStore();
+
+  // 获取当前视频模型支持的功能
+  const { supportsFirstLastFrame } = useVideoModelSupport();
 
   // 计算所需积分（基于当前表单的时长和分辨率）
   const duration = Form.useWatch('duration', form) || 5;
@@ -239,19 +245,14 @@ export default function VideoGenerateModal({
           <div style={{ display: 'flex', gap: 16 }}>
             {/* 首帧 */}
             <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#999',
-                  marginBottom: 4,
-                }}
-              >
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
                 首帧 {!firstFrame && '(未设置)'}
               </div>
               {firstFrame ? (
-                <img
+                <Image
                   src={firstFrame.url}
                   alt="首帧"
+                  preview
                   style={{
                     width: '100%',
                     height: 150,
@@ -279,49 +280,46 @@ export default function VideoGenerateModal({
               )}
             </div>
 
-            {/* 尾帧 */}
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#999',
-                  marginBottom: 4,
-                }}
-              >
-                尾帧 {lastFrame ? '(已设置)' : '(可选)'}
-              </div>
-              {lastFrame ? (
-                <img
-                  src={lastFrame.url}
-                  alt="尾帧"
-                  style={{
-                    width: '100%',
-                    height: 150,
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                    border: '2px solid #1890ff',
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: 150,
-                    backgroundColor: '#f5f5f5',
-                    borderRadius: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999',
-                    fontSize: 12,
-                  }}
-                >
-                  未设置尾帧
-                  <br />
-                  (将使用单图生成)
+            {/* 尾帧 - 仅支持首尾帧的模型显示 */}
+            {supportsFirstLastFrame && (
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                  尾帧 {lastFrame ? '(已设置)' : '(可选)'}
                 </div>
-              )}
-            </div>
+                {lastFrame ? (
+                  <Image
+                    src={lastFrame.url}
+                    alt="尾帧"
+                    preview
+                    style={{
+                      width: '100%',
+                      height: 150,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      border: '2px solid #1890ff',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: 150,
+                      backgroundColor: '#f5f5f5',
+                      borderRadius: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#999',
+                      fontSize: 12,
+                    }}
+                  >
+                    未设置尾帧
+                    <br />
+                    (将使用单图生成)
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div
             style={{
@@ -330,9 +328,11 @@ export default function VideoGenerateModal({
               color: '#999',
             }}
           >
-            {lastFrame
+            {supportsFirstLastFrame && lastFrame
               ? '✅ 将使用首尾帧生成视频（更精确控制）'
-              : 'ℹ️ 将使用单图（首帧）生成视频'}
+              : supportsFirstLastFrame
+              ? 'ℹ️ 将使用单图（首帧）生成视频'
+              : 'ℹ️ 当前模型不支持首尾帧，将使用单图（首帧）生成视频'}
           </div>
         </div>
 

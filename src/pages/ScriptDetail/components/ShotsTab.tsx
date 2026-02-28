@@ -11,6 +11,7 @@ import {
   message,
   Alert,
   Collapse,
+  Tooltip,
 } from 'antd';
 import {
   ThunderboltOutlined,
@@ -21,6 +22,7 @@ import {
 } from '@ant-design/icons';
 
 import ImageGenerateModal from './ImageGenerateModal';
+import { useVideoModelSupport } from '@/hooks/useVideoModelSupport';
 
 interface ShotImage {
   id: number;
@@ -81,6 +83,9 @@ export default function ShotsTab({
 }: ShotsTabProps) {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentShot, setCurrentShot] = useState<Shot | null>(null);
+
+  // 获取当前视频模型支持的功能
+  const { supportsFirstLastFrame } = useVideoModelSupport();
 
   const showGeneratingUI = generateLoading && generatingRawText;
 
@@ -298,20 +303,23 @@ export default function ShotsTab({
                                   >
                                     设为首帧
                                   </Button>
-                                  <Button
-                                    type="primary"
-                                    icon={<StarOutlined />}
-                                    style={{
-                                      background: '#1890ff',
-                                      borderColor: '#1890ff',
-                                    }}
-                                    onClick={() => {
-                                      onSetLastFrame(shot.id, img.id);
-                                      Modal.destroyAll();
-                                    }}
-                                  >
-                                    设为尾帧
-                                  </Button>
+                                  <Tooltip title={!supportsFirstLastFrame ? '当前视频模型不支持首尾帧' : ''}>
+                                    <Button
+                                      type="primary"
+                                      icon={<StarOutlined />}
+                                      disabled={!supportsFirstLastFrame}
+                                      style={{
+                                        background: supportsFirstLastFrame ? '#1890ff' : undefined,
+                                        borderColor: supportsFirstLastFrame ? '#1890ff' : undefined,
+                                      }}
+                                      onClick={() => {
+                                        onSetLastFrame(shot.id, img.id);
+                                        Modal.destroyAll();
+                                      }}
+                                    >
+                                      设为尾帧
+                                    </Button>
+                                  </Tooltip>
                                   <Popconfirm
                                     title="确定删除这张图片吗？"
                                     onConfirm={() => {
