@@ -5,7 +5,6 @@ import {
   DeleteOutlined,
   PictureOutlined,
   VideoCameraOutlined,
-  StarOutlined,
 } from '@ant-design/icons';
 
 import VideoGenerateModal from './VideoGenerateModal';
