@@ -139,11 +139,17 @@ function ScriptDetail() {
           setGenerateLoading(false);
           setGeneratingRawText('');
         },
-        (result) => {
-          message.success('分镜脚本生成成功');
+        async (result) => {
+          console.log('✅ 分镜生成完成，准备刷新数据');
           setGeneratingRawText('');
-          loadScript();
           setGenerateLoading(false);
+          
+          // 等待一小段时间确保后端保存完成
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // 刷新数据
+          await loadScript();
+          message.success('分镜脚本生成成功');
         }
       );
     } catch (error) {
