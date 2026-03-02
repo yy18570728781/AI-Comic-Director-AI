@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   Card,
@@ -16,11 +16,13 @@ import {
   Image,
 } from 'antd';
 import { PlusOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { debounce } from 'lodash';
 import { useModelStore } from '@/stores/useModelStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { getModelList } from '@/api/model';
+import { storage } from '@/utils';
 import {
   modeLabels,
   modeDescriptions,
@@ -66,15 +68,28 @@ function ImageToVideo() {
   const [watermark, setWatermark] = useState<boolean>(true);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [batchCount, setBatchCount] = useState<number>(1);
-  const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
+  const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>(() => 
+    storage.get<GeneratedVideo[]>('imageToVideo_generatedVideos', []) ?? []
+  );
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [generateAudio, setGenerateAudio] = useState(false);
+
+  // 持久化生成的视频到 localStorage（使用 debounce 优化性能）
+  const saveToStorage = useCallback(
+    debounce((videos: GeneratedVideo[]) => {
+      storage.set('imageToVideo_generatedVideos', videos);
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    saveToStorage(generatedVideos);
+  }, [generatedVideos, saveToStorage]);
 
   // 使用统一的 AI 生成 hook
   const { generateVideo, tasks, generatingVideoIds } = useAIGeneration({
     onVideoComplete: (video) => {
       setGeneratedVideos(prev => [...prev, video]);
-      // 任务完成后刷新积分
       refreshPoints();
     },
     showMessage: true,
@@ -601,7 +616,23 @@ function ImageToVideo() {
         {/* 右侧：输出结果 */}
         <Col xs={24} lg={14}>
           <Card
-            title="生成结果"
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>生成结果 {generatedVideos.length > 0 && `(${generatedVideos.length})`}</span>
+                {generatedVideos.length > 0 && (
+                  <Button 
+                    size="small" 
+                    danger
+                    onClick={() => {
+                      setGeneratedVideos([]);
+                      message.success('已清空生成结果');
+                    }}
+                  >
+                    清空列表
+                  </Button>
+                )}
+              </div>
+            }
             style={{
               borderRadius: token.borderRadiusLG,
               backgroundColor: token.colorBgContainer,
@@ -609,20 +640,7 @@ function ImageToVideo() {
               minHeight: 500,
             }}
           >
-            {generating && pendingTasks.length === 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  minHeight: 400,
-                }}
-              >
-                <Spin tip="正在生成视频..." />
-              </div>
-            )}
-
-            {!generating && generatedVideos.length === 0 && pendingTasks.length === 0 && (
+            {generatedVideos.length === 0 && pendingTasks.length === 0 ? (
               <div
                 style={{
                   display: 'flex',
@@ -637,9 +655,7 @@ function ImageToVideo() {
                 <div style={{ fontSize: 48, color: token.colorBorder }}>🎬</div>
                 <div>点击"生成视频"开始创建</div>
               </div>
-            )}
-
-            {generatedVideos.length > 0 && (
+            ) : (
               <div
                 style={{
                   display: 'grid',

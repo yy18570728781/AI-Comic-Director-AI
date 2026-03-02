@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   Card,
@@ -14,12 +14,14 @@ import {
   theme,
   Switch,
 } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, PictureOutlined } from '@ant-design/icons';
+import { debounce } from 'lodash';
 import { useModelStore } from '@/stores/useModelStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useAIGeneration, GeneratedImage } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import { getModelList } from '@/api/model';
+import { storage } from '@/utils';
 
 const { TextArea } = Input;
 
@@ -47,15 +49,28 @@ function ImageToImage() {
   const [quality, setQuality] = useState<string | undefined>();
   const [aspectRatio, setAspectRatio] = useState<string | undefined>();
   const [selectorVisible, setSelectorVisible] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>(() => 
+    storage.get<GeneratedImage[]>('imageToImage_generatedImages', []) ?? []
+  );
   const [batchCount, setBatchCount] = useState<number>(1);
   const [saveToLibrary, setSaveToLibrary] = useState(false);
+
+  // 持久化生成的图片到 localStorage（使用 debounce 优化性能）
+  const saveToStorage = useCallback(
+    debounce((images: GeneratedImage[]) => {
+      storage.set('imageToImage_generatedImages', images);
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    saveToStorage(generatedImages);
+  }, [generatedImages, saveToStorage]);
 
   // 使用统一的 AI 生成 hook
   const { generateImage, tasks, generatingImageIds } = useAIGeneration({
     onImageComplete: (image) => {
       setGeneratedImages(prev => [...prev, image]);
-      // 任务完成后刷新积分
       refreshPoints();
     },
     showMessage: true,
@@ -483,7 +498,23 @@ function ImageToImage() {
         {/* 右侧：输出结果 */}
         <Col xs={24} lg={14}>
           <Card
-            title="生成结果"
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>生成结果 {generatedImages.length > 0 && `(${generatedImages.length})`}</span>
+                {generatedImages.length > 0 && (
+                  <Button 
+                    size="small" 
+                    danger
+                    onClick={() => {
+                      setGeneratedImages([]);
+                      message.success('已清空生成结果');
+                    }}
+                  >
+                    清空列表
+                  </Button>
+                )}
+              </div>
+            }
             style={{
               borderRadius: token.borderRadiusLG,
               backgroundColor: token.colorBgContainer,
@@ -491,7 +522,19 @@ function ImageToImage() {
               minHeight: 500,
             }}
           >
-            {!generating && generatedImages.length > 0 && (
+            {generatedImages.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '100px 20px',
+                color: token.colorTextTertiary,
+              }}>
+                <PictureOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+                <div>暂无生成结果</div>
+                <div style={{ fontSize: 12, marginTop: 8 }}>
+                  选择参考图并输入提示词后，点击生成按钮开始创作
+                </div>
+              </div>
+            ) : (
               <div
                 style={{
                   display: 'grid',

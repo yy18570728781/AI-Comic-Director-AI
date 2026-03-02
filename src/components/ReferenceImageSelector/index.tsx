@@ -97,6 +97,12 @@ export default function ReferenceImageSelector({
       okButtonProps={{
         disabled: selectedImages.length === 0,
       }}
+      styles={{
+        body: {
+          maxHeight: '70vh',
+          overflowY: 'auto',
+        },
+      }}
     >
       <div style={{ color: '#666', marginBottom: 16, fontSize: 12 }}>
         从项目图像、资源库或上传自定义图片
