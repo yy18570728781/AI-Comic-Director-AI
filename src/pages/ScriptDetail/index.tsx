@@ -75,11 +75,8 @@ function ScriptDetail() {
     onVideoComplete: (video, shotId) => {
       console.log('🎬 [主页面] onVideoComplete 被调用:', { video, shotId });
       if (shotId && video?.id) {
-        console.log('✅ [主页面] 调用 updateShotVideo');
         updateShotVideo(shotId, video);
-      } else {
-        console.warn('⚠️ [主页面] 视频回调数据不完整:', { shotId, hasVideoId: !!video?.id });
-      }
+      } 
     },
     onError: async (error, type, shotId) => {
       // 处理失败情况，局部刷新对应分镜的数据

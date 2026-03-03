@@ -104,22 +104,19 @@ export function useScriptData(script: any, setScript: (updater: (prev: any) => a
    * 更新分镜中的视频数据（局部刷新）
    */
   const updateShotVideo = useCallback((shotId: number, video: any) => {
-    console.log('🎬 [useScriptData] updateShotVideo 被调用:', { shotId, video });
-    
     setScript((prevScript: any) => {
-      if (!prevScript) {
-        console.warn('⚠️ [useScriptData] prevScript 为空');
-        return prevScript;
-      }
+      if (!prevScript) return prevScript;
       
       const updatedShots = prevScript.shots.map((shot: any) => {
         if (shot.id === shotId) {
-          const newVideos = shot.videos ? [...shot.videos, video] : [video];
-          console.log('✅ [useScriptData] 更新分镜视频:', { 
-            shotId, 
-            oldVideosCount: shot.videos?.length || 0, 
-            newVideosCount: newVideos.length 
-          });
+          // 确保视频对象包含必要的字段
+          const completeVideo = {
+            ...video,
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+          };
+          
+          const newVideos = shot.videos ? [...shot.videos, completeVideo] : [completeVideo];
           return { 
             ...shot, 
             videos: newVideos
