@@ -67,13 +67,14 @@ export default function ImageGenerateModal({
     if (visible && currentUser?.id) {
       loadCharacters();
     }
-  }, [visible, currentUser?.id]);
+  }, [visible, currentUser?.id, scriptId]);
 
   const loadCharacters = async () => {
     setLoadingCharacters(true);
     try {
       const res = await getCharacterList({
         userId: currentUser?.id,
+        ...(scriptId ? { scriptId } : {}),
         pageSize: 100,
       });
       setCharacters(res.data?.list || []);
