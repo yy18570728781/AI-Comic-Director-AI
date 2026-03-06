@@ -235,14 +235,7 @@ function ScriptCharacters() {
 
     setGenerateLoading(true);
     try {
-      const { width, height } = {
-        '1:1': { width: 1024, height: 1024 },
-        '16:9': { width: 1280, height: 720 },
-        '9:16': { width: 720, height: 1280 },
-        '3:4': { width: 768, height: 1152 },
-      }[values.aspectRatio] || { width: 1024, height: 1024 };
-
-      const optimizedPrompt = `${values.imagePrompt}，生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正试图、侧视图、后视图，白色背景，图片无文字`;
+      const optimizedPrompt = `${values.imagePrompt}，生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正视图、侧视图、后视图，白色背景，左上角显示角色名称"${selectedCharacterForImage.name}"，清晰的文字标注`;
 
       // 保存提示词到角色库
       await updateCharacterLibrary(selectedCharacterForImage.id, {
@@ -252,9 +245,8 @@ function ScriptCharacters() {
       const res = await generateImageAsync({
         prompt: optimizedPrompt,
         model: values.model,
-        width,
-        height,
-        referenceImages: values.referenceImages?.length > 0 ? values.referenceImages : undefined,
+        aspectRatio: values.aspectRatio,
+        referenceImages: values.referenceImages?.length ? values.referenceImages : undefined,
         scriptId: scriptId ? parseInt(scriptId) : undefined,
         characterId: selectedCharacterForImage.id,
         saveToLibrary: true,
