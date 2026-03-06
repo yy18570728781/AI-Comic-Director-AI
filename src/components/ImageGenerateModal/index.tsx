@@ -15,6 +15,7 @@ export interface ImageGenerateFormValues {
   imagePrompt: string;
   aspectRatio: string;
   cameraMovement: string;
+  quality?: string;
 }
 
 export interface ImageGenerateSubmitValues extends ImageGenerateFormValues {
@@ -91,6 +92,7 @@ export default function ImageGenerateModal({
       aspectRatio: '16:9',
       shotType: '全景',
       cameraMovement: '固定',
+      quality: 'hd',
       scene: '',
       imagePrompt: '',
       ...initialValues,
@@ -419,6 +421,18 @@ export default function ImageGenerateModal({
                 ))}
               </div>
             )}
+          </Form.Item>
+
+          <Form.Item
+            label="画质"
+            name="quality"
+            rules={[{ required: true, message: '请选择画质' }]}
+            extra="高清画质生成效果更好，但消耗积分更多"
+          >
+            <Select>
+              <Select.Option value="standard">标准画质</Select.Option>
+              <Select.Option value="hd">高清画质（推荐）</Select.Option>
+            </Select>
           </Form.Item>
 
           <Form.Item

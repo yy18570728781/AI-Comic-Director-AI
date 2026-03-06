@@ -37,8 +37,7 @@ export interface GeneratedVideo {
 export interface ImageParams {
   prompt: string;
   model?: string;
-  width?: number;
-  height?: number;
+  quality?: string;
   aspectRatio?: string;
   referenceImages?: string[];
   shotId?: number;
@@ -128,29 +127,14 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
 
   // 生成图片
   const generateImage = useCallback(async (params: ImageParams): Promise<string | null> => {
-    const { shotId, scriptId, aspectRatio, saveToLibrary, libraryName, libraryTags, ...rest } = params;
-
-    // 解析宽高
-    let width = rest.width || 1024;
-    let height = rest.height || 1024;
-
-    if (aspectRatio) {
-      const map: Record<string, [number, number]> = {
-        '1:1': [1024, 1024],
-        '16:9': [1280, 720],
-        '9:16': [720, 1280],
-        '4:3': [1024, 768],
-        '3:4': [768, 1024],
-      };
-      [width, height] = map[aspectRatio] || [1024, 1024];
-    }
+    const { shotId, scriptId, saveToLibrary, libraryName, libraryTags, ...rest } = params;
 
     try {
       const res = await generateImageAsync({
         prompt: rest.prompt,
         model: rest.model || 'seedream',
-        width,
-        height,
+        quality: rest.quality || 'hd',
+        aspectRatio: rest.aspectRatio || '16:9',
         referenceImages: rest.referenceImages,
         shotId,
         scriptId,

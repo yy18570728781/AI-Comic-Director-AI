@@ -27,13 +27,16 @@ export function generateImage(data: {
 export function generateImageAsync(data: {
   prompt: string
   model?: string
-  width?: number
-  height?: number
+  quality?: string
+  aspectRatio?: string
   style?: string
   referenceImages?: string[]
   seed?: number
   shotId?: number
   scriptId?: number
+  saveToLibrary?: boolean
+  libraryName?: string
+  libraryTags?: string[]
 }) {
   return request({
     url: '/api/ai/image/generate-async',

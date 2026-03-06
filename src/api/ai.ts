@@ -348,8 +348,8 @@ export function getModels() {
 export function generateImageAsync(data: {
     prompt: string
     model?: string
-    width?: number
-    height?: number
+    quality?: string
+    aspectRatio?: string
     style?: string
     referenceImages?: string[]
     seed?: number

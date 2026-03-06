@@ -261,7 +261,8 @@ function ScriptDetail() {
     await generateImage({
       prompt: config?.imagePrompt || shot.imagePrompt,
       model: config?.model || 'seedream',
-      aspectRatio: config?.aspectRatio || '1:1',
+      aspectRatio: config?.aspectRatio || '16:9',
+      quality: config?.quality || 'standard',
       referenceImages: config?.referenceImages || [],
       shotId,
       scriptId: script?.id,

@@ -46,8 +46,8 @@ function ImageToImage() {
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [quality, setQuality] = useState<string | undefined>();
-  const [aspectRatio, setAspectRatio] = useState<string | undefined>();
+  const [quality, setQuality] = useState<string>('standard');
+  const [aspectRatio, setAspectRatio] = useState<string>('16:9');
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>(() => 
     storage.get<GeneratedImage[]>('imageToImage_generatedImages', []) ?? []
@@ -91,16 +91,18 @@ function ImageToImage() {
           const imageModels = response.data.imageModels || [];
           setModels(imageModels);
 
-          // 初始化当前模型的配置项
+          // 初始化当前模型的配置项（如果模型配置中有，则使用模型配置的第一项）
           const currentModel = imageModels.find(
             (m: any) => m.id === imageModel,
           ) as ModelConfig | undefined;
           const currentConfig = currentModel?.config;
 
+          // 只有当模型配置中有 qualities 时才覆盖默认值
           if (currentConfig?.qualities && currentConfig.qualities.length > 0) {
             setQuality(currentConfig.qualities[0]);
           }
 
+          // 只有当模型配置中有 aspectRatios 时才覆盖默认值
           if (
             currentConfig?.aspectRatios &&
             currentConfig.aspectRatios.length > 0
@@ -138,17 +140,17 @@ function ImageToImage() {
       | undefined;
     const newConfig = newModel?.config;
 
-    // 默认选中第一项（如果有的话）
+    // 如果新模型有配置，使用第一项；否则保持默认值
     if (newConfig?.qualities && newConfig.qualities.length > 0) {
       setQuality(newConfig.qualities[0]);
     } else {
-      setQuality(undefined);
+      setQuality('hd'); // 恢复默认值
     }
 
     if (newConfig?.aspectRatios && newConfig.aspectRatios.length > 0) {
       setAspectRatio(newConfig.aspectRatios[0]);
     } else {
-      setAspectRatio(undefined);
+      setAspectRatio('16:9'); // 恢复默认值
     }
   };
 
@@ -163,35 +165,13 @@ function ImageToImage() {
       return;
     }
 
-    // 计算宽高
-    let width = 1024;
-    let height = 1024;
-    
-    if (quality) {
-      switch (quality) {
-        case '2K': width = height = 2048; break;
-        case '4K': width = height = 4096; break;
-        default: width = height = 1024;
-      }
-    }
-
-    // 根据比例调整
-    if (aspectRatio && aspectRatio !== '1:1') {
-      const [w, h] = aspectRatio.split(':').map(Number);
-      if (w > h) {
-        height = Math.round((width * h) / w);
-      } else {
-        width = Math.round((height * w) / h);
-      }
-    }
-
     // 批量提交任务
     for (let i = 0; i < batchCount; i++) {
       await generateImage({
         prompt: prompt.trim(),
         model: imageModel,
-        width,
-        height,
+        quality,
+        aspectRatio,
         referenceImages: selectedImages,
         ...(saveToLibrary ? {
           saveToLibrary: true,
@@ -299,56 +279,83 @@ function ImageToImage() {
                   />
                 </div>
 
-                {/* 画质选择（如果模型支持） */}
-                {modelConfig?.qualities && modelConfig.qualities.length > 0 && (
-                  <div>
-                    <div style={{ marginBottom: 12, fontWeight: 500 }}>
-                      画质
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {modelConfig.qualities.map((q) => (
-                        <Tag
-                          key={q}
-                          color={quality === q ? 'blue' : 'default'}
-                          onClick={() =>
-                            setQuality(quality === q ? undefined : q)
-                          }
-                          style={{ cursor: 'pointer', padding: '4px 12px' }}
-                        >
-                          {q}
-                        </Tag>
-                      ))}
-                    </div>
+                {/* 画质选择 */}
+                <div>
+                  <div style={{ marginBottom: 12, fontWeight: 500 }}>
+                    画质
                   </div>
-                )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Tag
+                      color={quality === 'standard' ? 'blue' : 'default'}
+                      onClick={() => setQuality('standard')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      标准画质
+                    </Tag>
+                    <Tag
+                      color={quality === 'hd' ? 'blue' : 'default'}
+                      onClick={() => setQuality('hd')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      高清画质（推荐）
+                    </Tag>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: token.colorTextTertiary,
+                      marginTop: 4,
+                    }}
+                  >
+                    💡 高清画质生成效果更好，但消耗积分更多
+                  </div>
+                </div>
 
                 {/* 画面比例选择 */}
-                {modelConfig?.aspectRatios &&
-                  modelConfig.aspectRatios.length > 0 && (
-                    <div>
-                      <div style={{ marginBottom: 12, fontWeight: 500 }}>
-                        画面比例
-                      </div>
-                      <div
-                        style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
-                      >
-                        {modelConfig.aspectRatios.map((ratio) => (
-                          <Tag
-                            key={ratio}
-                            color={aspectRatio === ratio ? 'blue' : 'default'}
-                            onClick={() =>
-                              setAspectRatio(
-                                aspectRatio === ratio ? undefined : ratio,
-                              )
-                            }
-                            style={{ cursor: 'pointer', padding: '4px 12px' }}
-                          >
-                            {ratio}
-                          </Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div>
+                  <div style={{ marginBottom: 12, fontWeight: 500 }}>
+                    画面比例
+                  </div>
+                  <div
+                    style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+                  >
+                    <Tag
+                      color={aspectRatio === '1:1' ? 'blue' : 'default'}
+                      onClick={() => setAspectRatio('1:1')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      1:1（正方形）
+                    </Tag>
+                    <Tag
+                      color={aspectRatio === '16:9' ? 'blue' : 'default'}
+                      onClick={() => setAspectRatio('16:9')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      16:9（横屏）
+                    </Tag>
+                    <Tag
+                      color={aspectRatio === '9:16' ? 'blue' : 'default'}
+                      onClick={() => setAspectRatio('9:16')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      9:16（竖屏）
+                    </Tag>
+                    <Tag
+                      color={aspectRatio === '3:4' ? 'blue' : 'default'}
+                      onClick={() => setAspectRatio('3:4')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      3:4（标准竖屏）
+                    </Tag>
+                    <Tag
+                      color={aspectRatio === '4:3' ? 'blue' : 'default'}
+                      onClick={() => setAspectRatio('4:3')}
+                      style={{ cursor: 'pointer', padding: '4px 12px' }}
+                    >
+                      4:3（标准横屏）
+                    </Tag>
+                  </div>
+                </div>
 
                 {/* 生成数量 */}
                 <div>
