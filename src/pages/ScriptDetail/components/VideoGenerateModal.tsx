@@ -14,7 +14,6 @@ import {
 import { ThunderboltOutlined, SyncOutlined } from '@ant-design/icons';
 import { useModelStore } from '@/stores/useModelStore';
 import { useVideoModelSupport } from '@/hooks/useVideoModelSupport';
-import { getModelList } from '@/api/model';
 
 const { TextArea } = Input;
 
@@ -60,8 +59,8 @@ export default function VideoGenerateModal({
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
 
-  // 获取全局选择的视频模型
-  const { videoModel, videoModels } = useModelStore();
+  // 获取全局选择的视频模型和模型列表
+  const { videoModel, videoModels, loadModels } = useModelStore();
 
   // 获取当前视频模型支持的功能
   const { supportsFirstLastFrame } = useVideoModelSupport();
@@ -79,18 +78,15 @@ export default function VideoGenerateModal({
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const response = await getModelList();
-        if (response.success && response.data) {
-          const videoModels = response.data.videoModels || [];
-          setModels(videoModels);
+        await loadModels();
+        setModels(videoModels);
 
-          // 初始化当前模型的配置项
-          const currentModel = videoModels.find((m: any) => m.id === videoModel) as ModelConfig | undefined;
-          const currentConfig = currentModel?.config;
-          
-          if (currentConfig?.aspectRatios && currentConfig.aspectRatios.length > 0) {
-            setAspectRatio(currentConfig.aspectRatios[0]);
-          }
+        // 初始化当前模型的配置项
+        const currentModel = videoModels.find(m => m.id === videoModel);
+        const currentConfig = currentModel?.config;
+        
+        if (currentConfig?.aspectRatios?.[0]) {
+          setAspectRatio(currentConfig.aspectRatios[0]);
         }
       } catch (error) {
         console.error('获取模型列表失败:', error);
@@ -100,7 +96,7 @@ export default function VideoGenerateModal({
     if (visible) {
       fetchModels();
     }
-  }, [visible, videoModel]);
+  }, [visible, videoModel, videoModels, loadModels]);
 
   // 获取当前选中的模型配置
   const currentModel = models.find((m) => m.id === videoModel) as ModelConfig | undefined;

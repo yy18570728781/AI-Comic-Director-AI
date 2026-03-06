@@ -20,7 +20,6 @@ import { useModelStore } from '@/stores/useModelStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useAIGeneration, GeneratedImage } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
-import { getModelList } from '@/api/model';
 import { storage } from '@/utils';
 
 const { TextArea } = Input;
@@ -79,36 +78,28 @@ function ImageToImage() {
   // 计算状态
   const pendingTasks = tasks.filter(t => t.type === 'image');
   const generating = generatingImageIds.size > 0 || pendingTasks.length > 0;
+  const { imageModels, loadModels } = useModelStore();
 
   // 获取模型列表
   useEffect(() => {
     const fetchModels = async () => {
       setLoading(true);
       try {
-        const response = await getModelList();
-        if (response.success && response.data) {
-          // 后端返回的是 { imageModels: [...], videoModels: [...] }
-          const imageModels = response.data.imageModels || [];
-          setModels(imageModels);
+        await loadModels();
+        setModels(imageModels);
 
-          // 初始化当前模型的配置项（如果模型配置中有，则使用模型配置的第一项）
-          const currentModel = imageModels.find(
-            (m: any) => m.id === imageModel,
-          ) as ModelConfig | undefined;
-          const currentConfig = currentModel?.config;
+        // 初始化当前模型的配置项
+        const currentModel = imageModels.find(m => m.id === imageModel);
+        const currentConfig = currentModel?.config;
 
-          // 只有当模型配置中有 qualities 时才覆盖默认值
-          if (currentConfig?.qualities && currentConfig.qualities.length > 0) {
-            setQuality(currentConfig.qualities[0]);
-          }
+        // 只有当模型配置中有 qualities 时才覆盖默认值
+        if (currentConfig?.qualities?.length > 0) {
+          setQuality(currentConfig.qualities[0]);
+        }
 
-          // 只有当模型配置中有 aspectRatios 时才覆盖默认值
-          if (
-            currentConfig?.aspectRatios &&
-            currentConfig.aspectRatios.length > 0
-          ) {
-            setAspectRatio(currentConfig.aspectRatios[0]);
-          }
+        // 只有当模型配置中有 aspectRatios 时才覆盖默认值
+        if (currentConfig?.aspectRatios?.length > 0) {
+          setAspectRatio(currentConfig.aspectRatios[0]);
         }
       } catch (error) {
         message.error('获取模型列表失败');
@@ -117,7 +108,7 @@ function ImageToImage() {
       }
     };
     fetchModels();
-  }, [imageModel]);
+  }, [imageModel, imageModels, loadModels]);
 
   // 获取当前选中的模型配置
   const currentModel = models.find((m) => m.id === imageModel) as

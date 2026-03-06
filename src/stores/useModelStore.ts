@@ -23,17 +23,35 @@ export interface ModelOption {
     id: string;
     name: string;
     description: string;
-    type: 'image' | 'video';
-    provider: string;
-    features: string[];
-    available: boolean;
-    // 图片模型积分
+    platform: string;
+    cost?: number;
     creditsPerImage?: number;
-    // 视频模型定价
+    creditsPerSecond?: number;
+    enabled?: boolean;
+    tags?: string[];
     pricing?: Array<{
         resolution: string;
+        cost5s?: number;
         creditsPerSecond: number;
     }>;
+    config?: {
+        sizes?: string[];
+        qualities?: string[];
+        styles?: string[];
+        aspectRatios?: string[];
+        resolutions?: string[];
+        supportImageToImage?: boolean;
+        supportMultiImageFusion?: boolean;
+        supportSeed?: boolean;
+        supportNegativePrompt?: boolean;
+        supportedModes?: string[];
+        maxDuration?: number;
+        minDuration?: number;
+        maxImages?: number;
+        supportCameraMovement?: boolean;
+        supportWatermark?: boolean;
+        supportGenerateAudio?: boolean;
+    };
 }
 
 // 模型列表状态（纯内存，不持久化）

@@ -21,7 +21,6 @@ import { useModelStore } from '@/stores/useModelStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
 import ReferenceImageSelector from '@/components/ReferenceImageSelector';
-import { getModelList } from '@/api/model';
 import { storage } from '@/utils';
 import {
   modeLabels,
@@ -98,50 +97,48 @@ function ImageToVideo() {
   // 计算状态
   const pendingTasks = tasks.filter(t => t.type === 'video');
   const generating = generatingVideoIds.size > 0 || pendingTasks.length > 0;
+  const { videoModels, loadModels } = useModelStore();
 
   // 获取模型列表
   useEffect(() => {
     const fetchModels = async () => {
       setLoading(true);
       try {
-        const response = await getModelList();
-        if (response.success && response.data) {
-          const videoModels = response.data.videoModels || [];
-          setModels(videoModels);
+        await loadModels();
+        setModels(videoModels);
 
-          // 检查当前选择的视频模型是否存在
-          const currentModel = videoModels.find((m: any) => m.id === videoModel) as ModelConfig | undefined;
+        // 检查当前选择的视频模型是否存在
+        const currentModel = videoModels.find(m => m.id === videoModel);
+        
+        if (!currentModel && videoModels.length > 0) {
+          // 如果当前模型不存在，重置为默认视频模型
+          console.warn(`当前选择的模型 "${videoModel}" 不是视频模型，重置为默认模型`);
+          const defaultVideoModel = videoModels[0].id;
+          setVideoModel(defaultVideoModel);
           
-          if (!currentModel && videoModels.length > 0) {
-            // 如果当前模型不存在（比如选择了图像模型），重置为默认视频模型
-            console.warn(`当前选择的模型 "${videoModel}" 不是视频模型，重置为默认模型`);
-            const defaultVideoModel = videoModels[0].id;
-            setVideoModel(defaultVideoModel);
-            
-            // 使用默认模型的配置初始化
-            const defaultConfig = videoModels[0].config;
-            if (defaultConfig?.resolutions && defaultConfig.resolutions.length > 0) {
-              setResolution(defaultConfig.resolutions[0]);
-            }
-            if (defaultConfig?.aspectRatios && defaultConfig.aspectRatios.length > 0) {
-              setAspectRatio(defaultConfig.aspectRatios[0]);
-            }
-            return;
+          // 使用默认模型的配置初始化
+          const defaultConfig = videoModels[0]?.config;
+          if (defaultConfig?.resolutions?.[0]) {
+            setResolution(defaultConfig.resolutions[0]);
           }
-          
-          // 使用当前模型的配置
-          const currentConfig = currentModel?.config;
-          
-          if (currentConfig?.resolutions && currentConfig.resolutions.length > 0) {
-            setResolution(currentConfig.resolutions[0]);
+          if (defaultConfig?.aspectRatios?.[0]) {
+            setAspectRatio(defaultConfig.aspectRatios[0]);
           }
-          
-          if (currentConfig?.aspectRatios && currentConfig.aspectRatios.length > 0) {
-            setAspectRatio(currentConfig.aspectRatios[0]);
-          }
-          
-          console.log('当前模型配置:', currentConfig);
+          return;
         }
+        
+        // 使用当前模型的配置
+        const currentConfig = currentModel?.config;
+        
+        if (currentConfig?.resolutions?.[0]) {
+          setResolution(currentConfig.resolutions[0]);
+        }
+        
+        if (currentConfig?.aspectRatios?.[0]) {
+          setAspectRatio(currentConfig.aspectRatios[0]);
+        }
+        
+        console.log('当前模型配置:', currentConfig);
       } catch (error) {
         console.error('获取模型列表失败:', error);
         message.error('获取模型列表失败');
@@ -151,7 +148,7 @@ function ImageToVideo() {
     };
 
     fetchModels();
-  }, [videoModel, setVideoModel]);
+  }, [videoModel, videoModels, loadModels, setVideoModel]);
 
   // 获取当前选中的模型配置
   const currentModel = models.find((m) => m.id === videoModel) as ModelConfig | undefined;
