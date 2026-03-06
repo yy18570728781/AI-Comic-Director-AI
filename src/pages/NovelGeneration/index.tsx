@@ -16,6 +16,7 @@ interface TagCategory {
   name: string;
   key: string;
   options: TagOption[];
+  multiSelect?: boolean;
 }
 
 function NovelGeneration() {
