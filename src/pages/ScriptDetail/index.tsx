@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Tabs,
@@ -410,9 +410,11 @@ function ScriptDetail() {
   ];
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case 'script':
-        return (
+    // 所有标签都保持挂载，只是隐藏不活跃的标签
+    // 这样每个标签的滚动位置会自然保留
+    return (
+      <>
+        <div style={{ display: activeTab === 'script' ? 'block' : 'none' }}>
           <ScriptTab 
             content={script.content} 
             hasShots={script.shots?.length > 0}
@@ -420,9 +422,8 @@ function ScriptDetail() {
             generatingRawText={generatingRawText}
             onRegenerateStoryboard={handleGenerateStoryboard}
           />
-        );
-      case 'shots':
-        return (
+        </div>
+        <div style={{ display: activeTab === 'shots' ? 'block' : 'none' }}>
           <ShotsTab
             shots={script.shots || []}
             generateLoading={generateLoading}
@@ -439,9 +440,8 @@ function ScriptDetail() {
               await updateShotData(shotId, data, { showMessage: false });
             }}
           />
-        );
-      case 'images':
-        return (
+        </div>
+        <div style={{ display: activeTab === 'images' ? 'block' : 'none' }}>
           <ImagesTab
             shots={script.shots || []}
             generatingImages={generatingImageIds}
@@ -454,12 +454,12 @@ function ScriptDetail() {
               await updateShotData(shotId, data, { showMessage: false });
             }}
           />
-        );
-      case 'videos':
-        return <VideosTab shots={script.shots || []} />;
-      default:
-        return null;
-    }
+        </div>
+        <div style={{ display: activeTab === 'videos' ? 'block' : 'none' }}>
+          <VideosTab shots={script.shots || []} />
+        </div>
+      </>
+    );
   };
 
   return (
