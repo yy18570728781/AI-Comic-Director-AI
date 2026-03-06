@@ -1,16 +1,46 @@
-import { useState } from 'react';
-import { Card, Form, Input, Button, Select, message } from 'antd';
+import { useState, useEffect } from 'react';
+import { Card, Form, Input, Button, Select, message, Space, Tag } from 'antd';
 import { CopyOutlined, FileAddOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { generateScriptStream } from '@/api/ai';
+import { getScriptTags } from '@/api/script';
 
 const { TextArea } = Input;
+
+interface TagOption {
+  label: string;
+  value: string;
+}
+
+interface TagCategory {
+  name: string;
+  key: string;
+  options: TagOption[];
+}
 
 function ScriptGeneration() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [scriptResult, setScriptResult] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tagConfig, setTagConfig] = useState<TagCategory[]>([]);
+  const [tagSelection, setTagSelection] = useState<Record<string, string>>({
+    cameraStyle: '漫画感',
+    shotCount: '适中（25-30镜）',
+  });
+
+  useEffect(() => {
+    loadTagConfig();
+  }, []);
+
+  const loadTagConfig = async () => {
+    try {
+      const { data } = await getScriptTags();
+      setTagConfig(data);
+    } catch (error: any) {
+      message.error('加载配置失败');
+    }
+  };
 
   const handleGenerate = async (values: any) => {
     setLoading(true);
@@ -18,9 +48,15 @@ function ScriptGeneration() {
 
     let accumulatedText = '';
 
+    const shotCountValue = tagSelection.shotCount.match(/\d+/)?.[0] || '30';
+
     try {
       await generateScriptStream(
-        { novel: values.novel, style: values.style },
+        { 
+          novel: values.novel, 
+          cameraStyle: tagSelection.cameraStyle,
+          shotCount: parseInt(shotCountValue),
+        },
         (content: string) => {
           accumulatedText += content;
           setScriptResult(accumulatedText);
@@ -50,10 +86,10 @@ function ScriptGeneration() {
       return;
     }
 
-    const { novel, style } = form.getFieldsValue();
+    const { novel } = form.getFieldsValue();
     
     localStorage.setItem('pendingScriptContent', scriptResult);
-    localStorage.setItem('pendingScriptStyle', style);
+    localStorage.setItem('pendingScriptStyle', tagSelection.cameraStyle);
     localStorage.setItem('pendingScriptTitle', novel.substring(0, 20) + '...');
 
     navigate('/script-management');
@@ -81,15 +117,29 @@ function ScriptGeneration() {
               />
             </Form.Item>
 
-            <Form.Item label="剧本风格" name="style" initialValue="奇幻">
-              <Select>
-                <Select.Option value="奇幻">奇幻</Select.Option>
-                <Select.Option value="科幻">科幻</Select.Option>
-                <Select.Option value="恋爱">恋爱</Select.Option>
-                <Select.Option value="悬疑">悬疑</Select.Option>
-                <Select.Option value="武侠">武侠</Select.Option>
-              </Select>
-            </Form.Item>
+            {/* 配置选项 */}
+            <div style={{ marginBottom: 24 }}>
+              {tagConfig.map((category) => {
+                const selected = tagSelection[category.key] || '';
+                return (
+                  <div key={category.key} style={{ marginBottom: 16 }}>
+                    <div style={{ marginBottom: 8, fontWeight: 500 }}>{category.name}：</div>
+                    <Space wrap>
+                      {category.options.map((option) => (
+                        <Tag
+                          key={option.value}
+                          color={selected === option.label ? 'blue' : 'default'}
+                          style={{ cursor: 'pointer', fontSize: 14, padding: '4px 12px' }}
+                          onClick={() => setTagSelection(prev => ({ ...prev, [category.key]: option.label }))}
+                        >
+                          {option.label}
+                        </Tag>
+                      ))}
+                    </Space>
+                  </div>
+                );
+              })}
+            </div>
 
             {scriptResult && (
               <Card 

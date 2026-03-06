@@ -1,6 +1,16 @@
 import { request } from './request'
 
 /**
+ * 获取剧本配置标签
+ */
+export function getScriptTags() {
+    return request({
+        url: '/api/script/tags',
+        method: 'get',
+    })
+}
+
+/**
  * 创建剧本
  */
 export function createScript(data: {
