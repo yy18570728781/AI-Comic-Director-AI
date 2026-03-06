@@ -93,12 +93,12 @@ function ImageToImage() {
         const currentConfig = currentModel?.config;
 
         // 只有当模型配置中有 qualities 时才覆盖默认值
-        if (currentConfig?.qualities?.length > 0) {
+        if (currentConfig?.qualities?.length) {
           setQuality(currentConfig.qualities[0]);
         }
 
         // 只有当模型配置中有 aspectRatios 时才覆盖默认值
-        if (currentConfig?.aspectRatios?.length > 0) {
+        if (currentConfig?.aspectRatios?.length) {
           setAspectRatio(currentConfig.aspectRatios[0]);
         }
       } catch (error) {
@@ -132,13 +132,13 @@ function ImageToImage() {
     const newConfig = newModel?.config;
 
     // 如果新模型有配置，使用第一项；否则保持默认值
-    if (newConfig?.qualities && newConfig.qualities.length > 0) {
+    if (newConfig?.qualities?.length) {
       setQuality(newConfig.qualities[0]);
     } else {
       setQuality('hd'); // 恢复默认值
     }
 
-    if (newConfig?.aspectRatios && newConfig.aspectRatios.length > 0) {
+    if (newConfig?.aspectRatios?.length) {
       setAspectRatio(newConfig.aspectRatios[0]);
     } else {
       setAspectRatio('16:9'); // 恢复默认值
