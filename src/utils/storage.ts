@@ -82,4 +82,98 @@ export const createNamespacedStorage = (namespace: string) => ({
   has(key: string): boolean {
     return storage.has(`${namespace}:${key}`);
   },
+  
+  clearAll(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(`${namespace}:`)) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to clear namespace: ${namespace}`, error);
+    }
+  },
+});
+
+/**
+ * sessionStorage 工具函数
+ */
+export const sessionStore = {
+  set<T>(key: string, value: T): void {
+    try {
+      const serialized = JSON.stringify(value);
+      sessionStorage.setItem(key, serialized);
+    } catch (error) {
+      console.error(`无法保存到 sessionStorage: ${key}`, error);
+    }
+  },
+
+  get<T>(key: string, defaultValue?: T): T | null {
+    try {
+      const item = sessionStorage.getItem(key);
+      if (item === null) {
+        return defaultValue ?? null;
+      }
+      return JSON.parse(item) as T;
+    } catch (error) {
+      console.error(`无法保存到 sessionStorage: ${key}`, error);
+      return defaultValue ?? null;
+    }
+  },
+
+  remove(key: string): void {
+    try {
+      sessionStorage.removeItem(key);
+    } catch (error) {
+      console.error(`无法保存到 sessionStorage: ${key}`, error);
+    }
+  },
+
+  clear(): void {
+    try {
+      sessionStorage.clear();
+    } catch (error) {
+      console.error('无法保存到 sessionStorage', error);
+    }
+  },
+
+  has(key: string): boolean {
+    return sessionStorage.getItem(key) !== null;
+  },
+};
+
+/**
+ * 创建带命名空间的 sessionStorage
+ */
+export const createNamespacedSessionStorage = (namespace: string) => ({
+  set<T>(key: string, value: T): void {
+    sessionStore.set(`${namespace}:${key}`, value);
+  },
+
+  get<T>(key: string, defaultValue?: T): T | null {
+    return sessionStore.get(`${namespace}:${key}`, defaultValue);
+  },
+
+  remove(key: string): void {
+    sessionStore.remove(`${namespace}:${key}`);
+  },
+
+  has(key: string): boolean {
+    return sessionStore.has(`${namespace}:${key}`);
+  },
+  
+  clearAll(): void {
+    try {
+      const keys = Object.keys(sessionStorage);
+      keys.forEach(key => {
+        if (key.startsWith(`${namespace}:`)) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to clear namespace: ${namespace}`, error);
+    }
+  },
 });
