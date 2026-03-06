@@ -49,14 +49,11 @@ function ScriptGeneration() {
 
     let accumulatedText = '';
 
-    const shotCountValue = tagSelection.shotCount.match(/\d+/)?.[0] || '30';
-
     try {
       await generateScriptStream(
         { 
           novel: values.novel, 
-          cameraStyle: tagSelection.cameraStyle,
-          shotCount: parseInt(shotCountValue),
+          style: tagSelection.cameraStyle,
         },
         (content: string) => {
           accumulatedText += content;
