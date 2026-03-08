@@ -72,6 +72,7 @@ function ImageToVideo() {
   );
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [generateAudio, setGenerateAudio] = useState(false);
+  const [loadingPlaceholders, setLoadingPlaceholders] = useState<number>(0);
 
   // 持久化生成的视频到 localStorage（使用 debounce 优化性能）
   const saveToStorage = useCallback(
@@ -89,6 +90,7 @@ function ImageToVideo() {
   const { generateVideo, tasks, generatingVideoIds } = useAIGeneration({
     onVideoComplete: (video) => {
       setGeneratedVideos(prev => [...prev, video]);
+      setLoadingPlaceholders(prev => Math.max(0, prev - 1));
       refreshPoints();
     },
     showMessage: true,
@@ -219,6 +221,9 @@ function ImageToVideo() {
       message.error(`当前模式不可用，请调整图片数量或切换模式`);
       return;
     }
+
+    // 立即添加占位图
+    setLoadingPlaceholders(prev => prev + batchCount);
 
     // 批量提交任务
     for (let i = 0; i < batchCount; i++) {
@@ -574,9 +579,8 @@ function ImageToVideo() {
                   type="primary"
                   size="large"
                   block
-                  loading={generating}
                   onClick={handleGenerate}
-                  disabled={!selectedImages.length || !prompt.trim() || !hasEnoughPoints}
+                  disabled={!selectedImages.length || !prompt.trim() || !hasEnoughPoints || generating}
                   icon={<PlayCircleOutlined />}
                 >
                   生成视频 ({batchCount}个) - 消耗 {totalCredits} 积分
@@ -641,6 +645,7 @@ function ImageToVideo() {
                     danger
                     onClick={() => {
                       setGeneratedVideos([]);
+                      setLoadingPlaceholders(0);
                       message.success('已清空生成结果');
                     }}
                   >
@@ -656,7 +661,7 @@ function ImageToVideo() {
               minHeight: 500,
             }}
           >
-            {generatedVideos.length === 0 && pendingTasks.length === 0 ? (
+            {generatedVideos.length === 0 && loadingPlaceholders === 0 ? (
               <div
                 style={{
                   display: 'flex',
@@ -679,6 +684,46 @@ function ImageToVideo() {
                   gap: 16,
                 }}
               >
+                {/* 加载中的占位图 */}
+                {Array.from({ length: loadingPlaceholders }).map((_, idx) => (
+                  <div
+                    key={`loading-${idx}`}
+                    style={{
+                      borderRadius: token.borderRadiusLG,
+                      overflow: 'hidden',
+                      border: `1px solid ${token.colorBorder}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 200,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: token.colorBgElevated,
+                      }}
+                    >
+                      <Spin size="large" tip="生成中..." />
+                    </div>
+                    <div
+                      style={{
+                        padding: 12,
+                        borderTop: `1px solid ${token.colorBorder}`,
+                        backgroundColor: token.colorBgElevated,
+                        textAlign: 'center',
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                      }}
+                    >
+                      正在生成第 {idx + 1} 个视频...
+                    </div>
+                  </div>
+                ))}
+
+                {/* 已生成的视频 */}
                 {generatedVideos.map((video, idx) => (
                   <div
                     key={video.id || idx}
@@ -716,14 +761,6 @@ function ImageToVideo() {
                       >
                         下载
                       </Button>
-                      {/* <Button
-                        type="link"
-                        size="small"
-                        block
-                        onClick={() => handleFavorite(video.url)}
-                      >
-                        收藏
-                      </Button> */}
                     </div>
                   </div>
                 ))}
