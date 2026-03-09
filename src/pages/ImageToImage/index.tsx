@@ -75,6 +75,9 @@ function ImageToImage() {
       setLoadingPlaceholders(prev => Math.max(0, prev - 1));
       refreshPoints();
     },
+    onError: () => {
+      setLoadingPlaceholders(prev => Math.max(0, prev - 1));
+    },
     showMessage: true,
   });
 
