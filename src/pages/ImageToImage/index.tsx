@@ -71,7 +71,7 @@ function ImageToImage() {
   // 使用统一的 AI 生成 hook
   const { generateImage, tasks, generatingImageIds } = useAIGeneration({
     onImageComplete: (image) => {
-      setGeneratedImages(prev => [...prev, image]);
+      setGeneratedImages(prev => [image, ...prev]); // 最新的排在前面
       setLoadingPlaceholders(prev => Math.max(0, prev - 1));
       refreshPoints();
     },
@@ -536,114 +536,126 @@ function ImageToImage() {
             style={{
               borderRadius: token.borderRadiusLG,
               backgroundColor: token.colorBgContainer,
-              height: '100%',
-              minHeight: 500,
+              height: 'calc(100vh - 48px)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            bodyStyle={{
+              flex: 1,
+              overflow: 'hidden',
+              padding: 0,
             }}
           >
-            {generatedImages.length === 0 && loadingPlaceholders === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '100px 20px',
-                color: token.colorTextTertiary,
-              }}>
-                <PictureOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-                <div>暂无生成结果</div>
-                <div style={{ fontSize: 12, marginTop: 8 }}>
-                  选择参考图并输入提示词后，点击生成按钮开始创作
+            <div style={{
+              height: '100%',
+              overflowY: 'auto',
+              padding: 24,
+            }}>
+              {generatedImages.length === 0 && loadingPlaceholders === 0 ? (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '100px 20px',
+                  color: token.colorTextTertiary,
+                }}>
+                  <PictureOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+                  <div>暂无生成结果</div>
+                  <div style={{ fontSize: 12, marginTop: 8 }}>
+                    选择参考图并输入提示词后，点击生成按钮开始创作
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                  gap: 16,
-                }}
-              >
-                <Image.PreviewGroup>
-                  {/* 加载中的占位图 */}
-                  {Array.from({ length: loadingPlaceholders }).map((_, idx) => (
-                    <div
-                      key={`loading-${idx}`}
-                      style={{
-                        borderRadius: token.borderRadiusLG,
-                        overflow: 'hidden',
-                        border: `1px solid ${token.colorBorder}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                    >
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: 16,
+                  }}
+                >
+                  <Image.PreviewGroup>
+                    {/* 加载中的占位图 */}
+                    {Array.from({ length: loadingPlaceholders }).map((_, idx) => (
                       <div
+                        key={`loading-${idx}`}
                         style={{
-                          width: '100%',
-                          height: 250,
+                          borderRadius: token.borderRadiusLG,
+                          overflow: 'hidden',
+                          border: `1px solid ${token.colorBorder}`,
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: token.colorBgElevated,
+                          flexDirection: 'column',
                         }}
                       >
-                        <Spin size="large" tip="生成中..." />
+                        <div
+                          style={{
+                            width: '100%',
+                            height: 250,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: token.colorBgElevated,
+                          }}
+                        >
+                          <Spin size="large" tip="生成中..." />
+                        </div>
+                        <div
+                          style={{
+                            padding: 12,
+                            borderTop: `1px solid ${token.colorBorder}`,
+                            backgroundColor: token.colorBgElevated,
+                            textAlign: 'center',
+                            fontSize: 12,
+                            color: token.colorTextSecondary,
+                          }}
+                        >
+                          正在生成第 {idx + 1} 张...
+                        </div>
                       </div>
+                    ))}
+                    
+                    {/* 已生成的图片 */}
+                    {generatedImages.map((img, idx) => (
                       <div
+                        key={img.id || idx}
                         style={{
-                          padding: 12,
-                          borderTop: `1px solid ${token.colorBorder}`,
-                          backgroundColor: token.colorBgElevated,
-                          textAlign: 'center',
-                          fontSize: 12,
-                          color: token.colorTextSecondary,
-                        }}
-                      >
-                        正在生成第 {idx + 1} 张...
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* 已生成的图片 */}
-                  {generatedImages.map((img, idx) => (
-                    <div
-                      key={img.id || idx}
-                      style={{
-                        borderRadius: token.borderRadiusLG,
-                        overflow: 'hidden',
-                        border: `1px solid ${token.colorBorder}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                    >
-                      <Image
-                        src={img.url}
-                        alt={`generated-${idx}`}
-                        style={{
-                          width: '100%',
-                          height: 250,
-                          objectFit: 'cover',
-                        }}
-                        preview={{ mask: '预览' }}
-                        fallback="/images/placeholder.png"
-                      />
-                      <div
-                        style={{
-                          padding: 12,
-                          borderTop: `1px solid ${token.colorBorder}`,
-                          backgroundColor: token.colorBgElevated,
+                          borderRadius: token.borderRadiusLG,
+                          overflow: 'hidden',
+                          border: `1px solid ${token.colorBorder}`,
                           display: 'flex',
-                          gap: 8,
+                          flexDirection: 'column',
                         }}
                       >
-                        <Button type="link" size="small" block>
-                          下载
-                        </Button>
-                        <Button type="link" size="small" block>
-                          收藏
-                        </Button>
+                        <Image
+                          src={img.url}
+                          alt={`generated-${idx}`}
+                          style={{
+                            width: '100%',
+                            height: 250,
+                            objectFit: 'cover',
+                          }}
+                          preview={{ mask: '预览' }}
+                          fallback="/images/placeholder.png"
+                        />
+                        <div
+                          style={{
+                            padding: 12,
+                            borderTop: `1px solid ${token.colorBorder}`,
+                            backgroundColor: token.colorBgElevated,
+                            display: 'flex',
+                            gap: 8,
+                          }}
+                        >
+                          <Button type="link" size="small" block>
+                            下载
+                          </Button>
+                          <Button type="link" size="small" block>
+                            收藏
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </Image.PreviewGroup>
-              </div>
-            )}
+                    ))}
+                  </Image.PreviewGroup>
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
       </Row>
