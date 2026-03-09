@@ -73,6 +73,7 @@ function ImageToVideo() {
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [generateAudio, setGenerateAudio] = useState(false);
   const [loadingPlaceholders, setLoadingPlaceholders] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 持久化生成的视频到 localStorage（使用 debounce 优化性能）
   const saveToStorage = useCallback(
@@ -89,9 +90,12 @@ function ImageToVideo() {
   // 使用统一的 AI 生成 hook
   const { generateVideo, tasks, generatingVideoIds } = useAIGeneration({
     onVideoComplete: (video) => {
-      setGeneratedVideos(prev => [...prev, video]);
+      setGeneratedVideos(prev => [video, ...prev]); // 最新的排在前面
       setLoadingPlaceholders(prev => Math.max(0, prev - 1));
       refreshPoints();
+    },
+    onError: () => {
+      setLoadingPlaceholders(prev => Math.max(0, prev - 1));
     },
     showMessage: true,
   });
@@ -204,7 +208,7 @@ function ImageToVideo() {
     }
   };
 
-  // 处理生成视频
+  // 处理生成视频（带防抖）
   const handleGenerate = async () => {
     if (!selectedImages.length) {
       message.warning('请先选择参考图');
@@ -212,6 +216,10 @@ function ImageToVideo() {
     }
     if (!prompt.trim()) {
       message.warning('请输入提示词');
+      return;
+    }
+    if (isSubmitting) {
+      message.warning('请稍等，正在提交任务...');
       return;
     }
 
@@ -222,26 +230,35 @@ function ImageToVideo() {
       return;
     }
 
-    // 立即添加占位图
-    setLoadingPlaceholders(prev => prev + batchCount);
+    setIsSubmitting(true);
 
-    // 批量提交任务
-    for (let i = 0; i < batchCount; i++) {
-      await generateVideo({
-        prompt: prompt.trim(),
-        model: videoModel,
-        mode: selectedMode as 'i2v' | 'flf2v' | 'ref2v' | 't2v',
-        referenceImages: selectedImages,
-        duration,
-        resolution,
-        ratio: aspectRatio,
-        generateAudio,
-        ...(saveToLibrary ? {
-          saveToLibrary: true,
-          libraryName: `视频_${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
-          libraryTags: ['视频', 'AI生成'],
-        } : {}),
-      });
+    try {
+      // 立即添加占位图
+      setLoadingPlaceholders(prev => prev + batchCount);
+
+      // 批量提交任务
+      for (let i = 0; i < batchCount; i++) {
+        await generateVideo({
+          prompt: prompt.trim(),
+          model: videoModel,
+          mode: selectedMode as 'i2v' | 'flf2v' | 'ref2v' | 't2v',
+          referenceImages: selectedImages,
+          duration,
+          resolution,
+          ratio: aspectRatio,
+          generateAudio,
+          ...(saveToLibrary ? {
+            saveToLibrary: true,
+            libraryName: `视频_${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+            libraryTags: ['视频', 'AI生成'],
+          } : {}),
+        });
+      }
+    } finally {
+      // 500ms 后解除防抖锁定
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 500);
     }
   };
 
@@ -580,7 +597,8 @@ function ImageToVideo() {
                   size="large"
                   block
                   onClick={handleGenerate}
-                  disabled={!selectedImages.length || !prompt.trim() || !hasEnoughPoints || generating}
+                  loading={isSubmitting}
+                  disabled={!selectedImages.length || !prompt.trim() || !hasEnoughPoints}
                   icon={<PlayCircleOutlined />}
                 >
                   生成视频 ({batchCount}个) - 消耗 {totalCredits} 积分
@@ -657,115 +675,127 @@ function ImageToVideo() {
             style={{
               borderRadius: token.borderRadiusLG,
               backgroundColor: token.colorBgContainer,
-              height: '100%',
-              minHeight: 500,
+              height: 'calc(100vh - 48px)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            bodyStyle={{
+              flex: 1,
+              overflow: 'hidden',
+              padding: 0,
             }}
           >
-            {generatedVideos.length === 0 && loadingPlaceholders === 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  minHeight: 400,
-                  color: token.colorTextTertiary,
-                  flexDirection: 'column',
-                  gap: 16,
-                }}
-              >
-                <div style={{ fontSize: 48, color: token.colorBorder }}>🎬</div>
-                <div>点击"生成视频"开始创建</div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: 16,
-                }}
-              >
-                {/* 加载中的占位图 */}
-                {Array.from({ length: loadingPlaceholders }).map((_, idx) => (
-                  <div
-                    key={`loading-${idx}`}
-                    style={{
-                      borderRadius: token.borderRadiusLG,
-                      overflow: 'hidden',
-                      border: `1px solid ${token.colorBorder}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
-                  >
+            <div style={{
+              height: '100%',
+              overflowY: 'auto',
+              padding: 24,
+            }}>
+              {generatedVideos.length === 0 && loadingPlaceholders === 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: 400,
+                    color: token.colorTextTertiary,
+                    flexDirection: 'column',
+                    gap: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 48, color: token.colorBorder }}>🎬</div>
+                  <div>点击"生成视频"开始创建</div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: 16,
+                  }}
+                >
+                  {/* 加载中的占位图 */}
+                  {Array.from({ length: loadingPlaceholders }).map((_, idx) => (
                     <div
+                      key={`loading-${idx}`}
                       style={{
-                        width: '100%',
-                        height: 200,
+                        borderRadius: token.borderRadiusLG,
+                        overflow: 'hidden',
+                        border: `1px solid ${token.colorBorder}`,
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: token.colorBgElevated,
+                        flexDirection: 'column',
                       }}
                     >
-                      <Spin size="large" tip="生成中..." />
-                    </div>
-                    <div
-                      style={{
-                        padding: 12,
-                        borderTop: `1px solid ${token.colorBorder}`,
-                        backgroundColor: token.colorBgElevated,
-                        textAlign: 'center',
-                        fontSize: 12,
-                        color: token.colorTextSecondary,
-                      }}
-                    >
-                      正在生成第 {idx + 1} 个视频...
-                    </div>
-                  </div>
-                ))}
-
-                {/* 已生成的视频 */}
-                {generatedVideos.map((video, idx) => (
-                  <div
-                    key={video.id || idx}
-                    style={{
-                      borderRadius: token.borderRadiusLG,
-                      overflow: 'hidden',
-                      border: `1px solid ${token.colorBorder}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
-                  >
-                    <video
-                      src={video.url}
-                      controls
-                      style={{
-                        width: '100%',
-                        height: 200,
-                        objectFit: 'cover',
-                      }}
-                    />
-                    <div
-                      style={{
-                        padding: 12,
-                        borderTop: `1px solid ${token.colorBorder}`,
-                        backgroundColor: token.colorBgElevated,
-                        display: 'flex',
-                        gap: 8,
-                      }}
-                    >
-                      <Button
-                        type="link"
-                        size="small"
-                        block
-                        onClick={() => handleDownload(video.url)}
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 200,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: token.colorBgElevated,
+                        }}
                       >
-                        下载
-                      </Button>
+                        <Spin size="large" tip="生成中..." />
+                      </div>
+                      <div
+                        style={{
+                          padding: 12,
+                          borderTop: `1px solid ${token.colorBorder}`,
+                          backgroundColor: token.colorBgElevated,
+                          textAlign: 'center',
+                          fontSize: 12,
+                          color: token.colorTextSecondary,
+                        }}
+                      >
+                        正在生成第 {idx + 1} 个视频...
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+
+                  {/* 已生成的视频 */}
+                  {generatedVideos.map((video, idx) => (
+                    <div
+                      key={video.id || idx}
+                      style={{
+                        borderRadius: token.borderRadiusLG,
+                        overflow: 'hidden',
+                        border: `1px solid ${token.colorBorder}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      <video
+                        src={video.url}
+                        controls
+                        style={{
+                          width: '100%',
+                          height: 200,
+                          objectFit: 'cover',
+                        }}
+                      />
+                      <div
+                        style={{
+                          padding: 12,
+                          borderTop: `1px solid ${token.colorBorder}`,
+                          backgroundColor: token.colorBgElevated,
+                          display: 'flex',
+                          gap: 8,
+                        }}
+                      >
+                        <Button
+                          type="link"
+                          size="small"
+                          block
+                          onClick={() => handleDownload(video.url)}
+                        >
+                          下载
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
       </Row>
