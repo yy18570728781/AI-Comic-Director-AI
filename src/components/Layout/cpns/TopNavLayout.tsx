@@ -20,8 +20,8 @@ export default function TopNavLayout() {
     <AuthGuard>
       <AntdLayout style={{ height: '100vh', background: '#06061a' }}>
         <TopNavBar />
-        <Content style={{ flex: 1, overflow: 'auto', padding: '16px 24px' }}>
-          <div style={{ padding: 24, minHeight: '100%', background: colorBgContainer, borderRadius: borderRadiusLG }}>
+        <Content style={{ flex: 1, overflow: 'auto', padding: '16px 24px', background: '#f5f5f5' }}>
+          <div style={{ minHeight: '100%', background: '#f5f5f5' }}>
             <Outlet />
           </div>
         </Content>
