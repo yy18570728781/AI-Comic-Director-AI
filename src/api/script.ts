@@ -226,6 +226,34 @@ export function batchSaveCharacters(characters: any[], userId: number, scriptId?
 }
 
 /**
+ * 批量保存场景到资源库
+ */
+export function batchSaveScenes(scenes: any[], userId: number, scriptId?: number) {
+    return request({
+        url: '/api/character-library/batch-save-scenes',
+        method: 'post',
+        data: { scenes, userId, scriptId },
+    })
+}
+
+/**
+ * 获取场景列表
+ */
+export function getSceneList(params: {
+    userId?: number;
+    scriptId?: number;
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+}) {
+    return request({
+        url: '/api/resource/list',
+        method: 'get',
+        params: { ...params, type: 'scene' },
+    })
+}
+
+/**
  * 获取角色列表
  */
 export function getCharacterList(params: {
