@@ -360,6 +360,8 @@ export function generateImageAsync(data: {
     libraryTags?: string[]
     userId?: number
     characterId?: number
+    promptType?: 'character' | 'scene' | 'general'
+    characterName?: string
 }) {
     return request({
         url: '/api/ai/image/generate-async',

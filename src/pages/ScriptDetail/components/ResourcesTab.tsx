@@ -283,14 +283,12 @@ function ResourcesTab({ scriptId }: ResourcesTabProps) {
 
     setGenerateLoading(true);
     try {
-      const optimizedPrompt = `${values.imagePrompt}，生成人物动漫角色，生成全身三视图，一张面部特写（最左边占满1/3的位置，超大面部特写），右边2/3放正视图、侧视图、后视图，白色背景，左上角显示角色名称"${selectedCharacterForImage.name}"，清晰的文字标注`;
-
       await updateCharacterLibrary(selectedCharacterForImage.id, {
         description: values.imagePrompt,
       });
 
       const res = await generateImageAsync({
-        prompt: optimizedPrompt,
+        prompt: values.imagePrompt,
         model: values.model,
         aspectRatio: values.aspectRatio,
         referenceImages: values.referenceImages?.length ? values.referenceImages : undefined,
@@ -299,6 +297,8 @@ function ResourcesTab({ scriptId }: ResourcesTabProps) {
         saveToLibrary: true,
         libraryName: `角色图像_${selectedCharacterForImage.name}`,
         libraryTags: ['角色图像', 'AI生成'],
+        promptType: 'character',
+        characterName: selectedCharacterForImage.name,
       });
 
       if (res.success && res.data?.jobId) {
