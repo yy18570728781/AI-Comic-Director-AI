@@ -308,7 +308,7 @@ function CharactersTab({ scriptId }: CharactersTabProps) {
       {resourceType === 'character' && (
         <>
           {/* 已保存角色列表 */}
-      <Card style={{ 
+          <Card style={{ 
         marginBottom: '24px',
         borderRadius: '12px',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
@@ -616,6 +616,15 @@ function CharactersTab({ scriptId }: CharactersTabProps) {
         onSave={handleSavePrompt}
       />
         </>
+      )}
+
+      {/* 场景资源 */}
+      {resourceType === 'scene' && (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+          <div style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }}>🎬</div>
+          <p>场景功能开发中...</p>
+          <p style={{ fontSize: '12px' }}>敬请期待场景提取和管理功能</p>
+        </div>
       )}
     </div>
   );
