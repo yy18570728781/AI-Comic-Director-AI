@@ -36,6 +36,7 @@ import {
   messages,
 } from '@/pages/CharacterLibrary/ScriptCharacters/config';
 import ImageGenerateModal from '@/components/ImageGenerateModal';
+import AutoBindingButton from '@/components/AutoBindingButton';
 import type { ImageGenerateSubmitValues, ImageGenerateFormValues } from '@/components/ImageGenerateModal';
 import { generateImageAsync } from '@/api/ai';
 import { useTaskStore } from '@/stores/useTaskStore';
@@ -321,9 +322,21 @@ function CharactersTab({ scriptId }: CharactersTabProps) {
               当前用户已保存到角色库的所有角色
             </p>
           </div>
-          <Button onClick={fetchSavedCharacters} loading={loadingSaved}>
-            {buttonTexts.refreshSaved}
-          </Button>
+          <Space>
+            <AutoBindingButton 
+              scriptId={scriptId}
+              onBindingComplete={() => {
+                message.success('角色绑定完成，分镜数据已更新')
+                // 可以在这里刷新相关数据
+              }}
+              onBindingError={(error) => {
+                console.error('角色绑定失败:', error)
+              }}
+            />
+            <Button onClick={fetchSavedCharacters} loading={loadingSaved}>
+              {buttonTexts.refreshSaved}
+            </Button>
+          </Space>
         </div>
 
         {loadingSaved ? (

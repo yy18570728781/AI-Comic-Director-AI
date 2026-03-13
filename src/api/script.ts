@@ -301,3 +301,36 @@ export function updateCharacterLibrary(id: number, data: any) {
         data,
     })
 }
+
+/**
+ * 为剧本的所有分镜绑定角色图像
+ */
+export function bindCharactersForScript(scriptId: number, options?: {
+    overwriteExisting?: boolean
+}) {
+    return request({
+        url: `/api/script/${scriptId}/bind-characters`,
+        method: 'post',
+        data: options || {},
+    })
+}
+
+/**
+ * 为单个分镜绑定角色图像
+ */
+export function bindCharactersForShot(shotId: number) {
+    return request({
+        url: `/api/shot/${shotId}/bind-characters`,
+        method: 'post',
+    })
+}
+
+/**
+ * 获取分镜的角色图像映射
+ */
+export function getCharacterMappings(shotId: number) {
+    return request({
+        url: `/api/shot/${shotId}/character-mappings`,
+        method: 'get',
+    })
+}
