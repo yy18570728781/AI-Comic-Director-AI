@@ -35,6 +35,7 @@ import ScriptTab from './components/ScriptTab';
 import ShotsTab from './components/ShotsTab';
 import VideosTab from './components/VideosTab';
 import ResourcesTab from './components/ResourcesTab';
+import AutoBindingButton from '@/components/AutoBindingButton';
 
 const { TextArea } = Input;
 
@@ -535,14 +536,26 @@ function ScriptDetail() {
                 style={{ marginBottom: 0, flex: 1 }}
               />
             </div>
-            <Button
-              type="primary"
-              icon={<MergeCellsOutlined />}
-              onClick={() => setBlendModalVisible(true)}
-              style={{ marginLeft: 16 }}
-            >
-              多参考图融图
-            </Button>
+            <Space style={{ marginLeft: 16 }}>
+              <AutoBindingButton 
+                scriptId={script?.id}
+                onBindingComplete={() => {
+                  message.success('角色绑定完成，分镜数据已更新')
+                  // 刷新脚本数据以显示最新的角色映射
+                  loadScript()
+                }}
+                onBindingError={(error) => {
+                  console.error('角色绑定失败:', error)
+                }}
+              />
+              <Button
+                type="primary"
+                icon={<MergeCellsOutlined />}
+                onClick={() => setBlendModalVisible(true)}
+              >
+                多参考图融图
+              </Button>
+            </Space>
           </div>
         </div>
       </div>
