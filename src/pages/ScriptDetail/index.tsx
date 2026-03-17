@@ -27,6 +27,7 @@ import {
 } from '@/api/script';
 import { useAIGeneration } from '@/hooks/useAIGeneration';
 import { useScriptData } from '@/hooks/useScriptData';
+import { getCharactersForAI } from '@/utils/characterUtils';
 
 // 导入标签页组件
 import ImageBlendModal from './components/ImageBlendModal';
@@ -143,9 +144,15 @@ function ScriptDetail() {
     setScript((prev: any) => prev ? { ...prev, shots: [] } : prev);
     
     try {
+      // 获取角色库信息作为参考
+      const characters = await getCharactersForAI(parseInt(id!));
+
       await generateStoryboardStream(
         parseInt(id!),
-        { shotCount: 30 },
+        { 
+          shotCount: 30,
+          characters,
+        },
         (content, fullText) => {
           setGeneratingRawText(fullText);
           console.log('📝 收到流式数据，当前长度:', fullText.length);
@@ -540,12 +547,11 @@ function ScriptDetail() {
               <AutoBindingButton 
                 scriptId={script?.id}
                 onBindingComplete={() => {
-                  message.success('角色绑定完成，分镜数据已更新')
-                  // 刷新脚本数据以显示最新的角色映射
-                  loadScript()
+                  message.success('角色绑定完成，分镜数据已更新');
+                  loadScript();
                 }}
                 onBindingError={(error) => {
-                  console.error('角色绑定失败:', error)
+                  console.error('角色绑定失败:', error);
                 }}
               />
               <Button

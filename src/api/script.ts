@@ -97,6 +97,10 @@ export async function generateStoryboardStream(
     data: {
         provider?: string
         shotCount?: number
+        characters?: Array<{ 
+            name: string; 
+            variants: Array<{ variant: string; tags: string[] }> 
+        }> // 角色参考信息
     },
     onChunk: (content: string, accumulated: string) => void,
     onError?: (error: string) => void,
