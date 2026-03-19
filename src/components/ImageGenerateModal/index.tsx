@@ -38,34 +38,52 @@ interface ImageGenerateModalProps {
 
 /**
  * 通用图像生成配置弹窗
+ * 
+ * 功能特性：
+ * 1. 自动添加角色参考图（基于 initialReferenceImages）
+ * 2. 角色选择与参考图双向同步
+ * 3. 支持手动添加/删除参考图
+ * 4. AI 提示词优化
+ * 5. 表单配置保存（可选）
+ * 
  * 不包含任何业务逻辑（不调 updateShot 等），业务由父组件通过回调处理
  */
 export default function ImageGenerateModal({
   visible,
   title = '生成图像',
   initialValues,
-  initialReferenceImages = [],
+  initialReferenceImages = [], // 初始参考图（通常来自角色绑定）
   scriptId,
   loading = false,
   onCancel,
   onSubmit,
   onSave,
 }: ImageGenerateModalProps) {
+  // === 表单相关状态 ===
   const [form] = Form.useForm();
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
-  const [selectorVisible, setSelectorVisible] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState('');
-  const [characters, setCharacters] = useState<any[]>([]);
-  const [loadingCharacters, setLoadingCharacters] = useState(false);
-  const [selectedCharacterIds, setSelectedCharacterIds] = useState<number[]>([]);
+  
+  // === 参考图管理状态 ===
+  const [referenceImages, setReferenceImages] = useState<string[]>([]); // 当前选中的参考图URL列表
+  const [selectorVisible, setSelectorVisible] = useState(false); // 参考图选择器弹窗显示状态
+  
+  // === 功能状态 ===
+  const [optimizing, setOptimizing] = useState(false); // AI优化提示词加载状态
+  const [saving, setSaving] = useState(false); // 保存表单加载状态
+  
+  // === 图片预览状态 ===
+  const [previewOpen, setPreviewOpen] = useState(false); // 图片预览弹窗显示状态
+  const [previewImage, setPreviewImage] = useState(''); // 当前预览的图片URL
+  
+  // === 角色选择相关状态 ===
+  const [characters, setCharacters] = useState<any[]>([]); // 角色列表数据
+  const [loadingCharacters, setLoadingCharacters] = useState(false); // 角色列表加载状态
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<number[]>([]); // 当前选中的角色ID列表
 
   const { imageModel } = useModelStore();
   const { currentUser } = useUserStore();
 
-  // 加载角色列表
+  // === 角色列表加载 ===
+  // 当弹窗打开且用户已登录时加载角色列表
   useEffect(() => {
     if (visible && currentUser?.id) {
       loadCharacters();
@@ -88,7 +106,20 @@ export default function ImageGenerateModal({
     }
   };
 
-  // 当弹窗打开时，初始化表单
+  // === 角色参考图自动同步 ===
+  // 当角色列表加载完成且有初始参考图时，自动设置对应的角色选中状态
+  // 这确保了下拉框回显与参考图的一致性
+  useEffect(() => {
+    if (characters.length > 0 && initialReferenceImages.length > 0) {
+      const matchedCharacterIds = characters
+        .filter(char => char.imageUrl && initialReferenceImages.includes(char.imageUrl))
+        .map(char => char.id);
+      setSelectedCharacterIds(matchedCharacterIds);
+    }
+  }, [characters, initialReferenceImages]);
+
+  // === 弹窗生命周期管理 ===
+  // 弹窗打开时初始化表单和状态
   const handleOpen = () => {
     form.setFieldsValue({
       aspectRatio: '16:9',
@@ -99,57 +130,66 @@ export default function ImageGenerateModal({
       imagePrompt: '',
       ...initialValues,
     });
+    
+    // 设置初始参考图（通常来自角色绑定）
     setReferenceImages(initialReferenceImages);
-    setSelectedCharacterIds([]);
+    // 角色选中状态由上面的 useEffect 自动处理
   };
 
-  // 处理角色选择变化
+  // 弹窗关闭时清理所有状态，避免数据残留
+  const handleClose = () => {
+    setReferenceImages([]);
+    setSelectedCharacterIds([]);
+    onCancel();
+  };
+
+  // === 角色选择与参考图双向同步 ===
+  // 处理用户手动选择/取消角色时的参考图同步
   const handleCharacterChange = (characterIds: number[]) => {
     const prevIds = selectedCharacterIds;
     setSelectedCharacterIds(characterIds);
     
-    // 找出新增和删除的角色
+    // 计算新增和删除的角色
     const addedIds = characterIds.filter(id => !prevIds.includes(id));
     const removedIds = prevIds.filter(id => !characterIds.includes(id));
     
-    // 获取新增角色的图片 URL
+    // 获取新增角色的图片URL
     const addedImages = characters
       .filter(char => addedIds.includes(char.id) && char.imageUrl)
       .map(char => char.imageUrl);
     
-    // 获取删除角色的图片 URL
+    // 获取删除角色的图片URL
     const removedImages = characters
       .filter(char => removedIds.includes(char.id) && char.imageUrl)
       .map(char => char.imageUrl);
     
-    // 更新参考图列表
+    // 更新参考图列表：先删除后添加，并去重
     setReferenceImages(prev => {
-      // 先移除被删除角色的图片
       let updated = prev.filter(url => !removedImages.includes(url));
-      // 再添加新增角色的图片（去重）
       const allImages = [...updated, ...addedImages];
-      return Array.from(new Set(allImages));
+      return Array.from(new Set(allImages)); // 去重处理
     });
   };
 
-  // 处理删除参考图
+  // 处理用户手动删除参考图时的角色同步
   const handleRemoveReferenceImage = (index: number) => {
     const removedUrl = referenceImages[index];
     
     // 从参考图列表中删除
     setReferenceImages(prev => prev.filter((_, i) => i !== index));
     
-    // 如果删除的图片是某个角色的图片，也要取消选中该角色
+    // 如果删除的是角色参考图，同步取消选中该角色
     const characterToRemove = characters.find(char => char.imageUrl === removedUrl);
     if (characterToRemove) {
       setSelectedCharacterIds(prev => prev.filter(id => id !== characterToRemove.id));
     }
   };
 
-  // AI 优化图像提示词
+  // === AI功能 ===
+  // AI优化图像提示词
   const handleOptimizePrompt = async () => {
     const imagePrompt = form.getFieldValue('imagePrompt');
-    if (!imagePrompt || !imagePrompt.trim()) {
+    if (!imagePrompt?.trim()) {
       message.warning('请先填写图像提示词');
       return;
     }
@@ -171,7 +211,8 @@ export default function ImageGenerateModal({
     }
   };
 
-  // 保存（仅当父组件传了 onSave 时可用）
+  // === 表单操作 ===
+  // 保存表单配置（仅当父组件传了 onSave 回调时可用）
   const handleSave = async () => {
     if (!onSave) return;
     try {
@@ -190,13 +231,13 @@ export default function ImageGenerateModal({
     }
   };
 
-  // 提交生成
+  // 提交生成请求
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       onSubmit({
         ...values,
-        referenceImages,
+        referenceImages, // 包含用户最终选择的所有参考图
         model: imageModel,
       });
     } catch (error) {
@@ -204,6 +245,7 @@ export default function ImageGenerateModal({
     }
   };
 
+  // === 参考图选择器相关 ===
   const handleSelectImages = (images: string[]) => {
     setReferenceImages(images);
     setSelectorVisible(false);
@@ -237,7 +279,7 @@ export default function ImageGenerateModal({
     <Modal
       title={title}
       open={visible}
-      onCancel={onCancel}
+      onCancel={handleClose}
       afterOpenChange={(open) => open && handleOpen()}
       width={700}
       footer={footerButtons}

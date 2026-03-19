@@ -14,7 +14,12 @@ interface ShotImageGenerateModalProps {
 
 /**
  * 分镜专用的图像生成弹窗
- * 在通用 ImageGenerateModal 基础上增加了 shot 保存逻辑和自动角色参考图
+ * 
+ * 功能特性：
+ * 1. 在通用 ImageGenerateModal 基础上增加了分镜保存逻辑
+ * 2. 自动从 shot.characterImageMappings 提取角色参考图
+ * 3. 支持保存分镜配置到数据库
+ * 4. 生成前自动保存表单配置
  */
 export default function ShotImageGenerateModal({
   visible,
@@ -22,11 +27,12 @@ export default function ShotImageGenerateModal({
   loading,
   onCancel,
   onSubmit,
-  onShotUpdate,
+  onShotUpdate, // 用于更新分镜数据的回调
 }: ShotImageGenerateModalProps) {
+  // === 角色参考图自动提取 ===
   const [initialReferenceImages, setInitialReferenceImages] = useState<string[]>([]);
 
-  // 当弹窗打开时，自动添加角色参考图
+  // 当弹窗打开时，从分镜的角色绑定中提取参考图
   useEffect(() => {
     if (visible && shot?.characterImageMappings?.length) {
       const characterImages = shot.characterImageMappings.map((mapping: any) => mapping.imageUrl);
@@ -37,7 +43,8 @@ export default function ShotImageGenerateModal({
     }
   }, [visible, shot?.characterImageMappings]);
 
-  // 保存分镜配置到数据库
+  // === 分镜数据保存 ===
+  // 保存分镜配置到数据库（表单保存功能）
   const handleSave = async (values: ImageGenerateFormValues) => {
     if (onShotUpdate) {
       await onShotUpdate(shot.id, {
@@ -55,9 +62,9 @@ export default function ShotImageGenerateModal({
     }
   };
 
-  // 生成图像前先保存，再回调父组件
+  // 生成图像前先保存配置，再提交生成请求
   const handleSubmit = async (values: ImageGenerateSubmitValues) => {
-    // 先保存到数据库
+    // 先保存表单配置到数据库
     try {
       if (onShotUpdate) {
         await onShotUpdate(shot.id, {
@@ -75,9 +82,10 @@ export default function ShotImageGenerateModal({
       }
     } catch (error) {
       console.error('保存表单失败:', error);
-      // 不阻塞生成流程
+      // 不阻塞生成流程，继续执行
     }
 
+    // 回调父组件执行实际的图像生成
     onSubmit(values);
   };
 
@@ -90,7 +98,7 @@ export default function ShotImageGenerateModal({
         scene: shot?.scene || '',
         imagePrompt: shot?.imagePrompt || '',
       }}
-      initialReferenceImages={initialReferenceImages}
+      initialReferenceImages={initialReferenceImages} // 自动添加的角色参考图
       scriptId={shot?.scriptId}
       loading={loading}
       onCancel={onCancel}
