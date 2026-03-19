@@ -10,6 +10,8 @@ import {
   WalletOutlined,
   HomeOutlined,
   AppstoreOutlined,
+  SettingOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 
 export const topMenuItems: MenuProps['items'] = [
@@ -45,6 +47,18 @@ export const topMenuItems: MenuProps['items'] = [
     children: [
       { key: '/recharge', icon: <WalletOutlined />, label: '积分充值' },
       { key: '/team-space', icon: <TeamOutlined />, label: '团队空间' },
+    ],
+  },
+];
+
+export const adminMenuItems: MenuProps['items'] = [
+  {
+    key: 'admin',
+    icon: <SettingOutlined />,
+    label: '系统管理',
+    children: [
+      { key: '/admin/users', icon: <UserOutlined />, label: '用户管理' },
+      { key: '/admin/models', icon: <DatabaseOutlined />, label: '模型管理' },
     ],
   },
 ];

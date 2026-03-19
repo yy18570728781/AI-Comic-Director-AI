@@ -13,7 +13,7 @@ import ModelSettingsModal from '@/components/ModelSettingsModal';
 import UserProfileModal from '@/components/UserProfileModal';
 import { useUserStore } from '@/stores/useUserStore';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { topMenuItems } from '../menuConfig';
+import { topMenuItems, adminMenuItems } from '../menuConfig';
 
 import './topnav.css';
 
@@ -40,6 +40,10 @@ export default function TopNavBar({ showThemeToggle = false, showUserActions = t
     ? '/script-management'
     : location.pathname;
 
+  const menuItems = currentUser?.role === 'admin' 
+    ? [...(topMenuItems ?? []), ...(adminMenuItems ?? [])]
+    : topMenuItems;
+
   return (
     <>
       <header className="topnav-header">
@@ -51,7 +55,7 @@ export default function TopNavBar({ showThemeToggle = false, showUserActions = t
           <Menu
             mode="horizontal"
             selectedKeys={[selectedKey]}
-            items={topMenuItems}
+            items={menuItems}
             onClick={handleMenuClick}
             className="topnav-menu"
           />

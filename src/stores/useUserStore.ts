@@ -8,11 +8,12 @@ export interface User {
   email?: string;
   phone?: string;
   avatar?: string;
+  role?: string;
   isActive: boolean;
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
-  points: number;  // 积分余额
+  points: number;
 }
 
 interface UserState {

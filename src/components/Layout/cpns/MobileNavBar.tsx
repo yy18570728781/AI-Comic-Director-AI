@@ -13,7 +13,7 @@ import {
 import ModelSettingsModal from '@/components/ModelSettingsModal';
 import UserProfileModal from '@/components/UserProfileModal';
 import { useUserStore } from '@/stores/useUserStore';
-import { topMenuItems, } from '../menuConfig';
+import { topMenuItems, adminMenuItems } from '../menuConfig';
 
 import './mobilenav.css';
 
@@ -37,7 +37,7 @@ export default function MobileNavBar() {
     : location.pathname;
 
   const menuItems = currentUser?.role === 'admin' 
-    ? [...(topMenuItems || [])]
+    ? [...(topMenuItems ?? []), ...(adminMenuItems ?? [])]
     : topMenuItems;
 
   return (
