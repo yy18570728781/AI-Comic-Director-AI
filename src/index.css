@@ -4,6 +4,22 @@
   box-sizing: border-box;
 }
 
+/* CSS 变量定义 - 亮色主题 */
+:root {
+  --color-text-primary: rgba(0, 0, 0, 0.88);
+  --color-text-secondary: rgba(0, 0, 0, 0.65);
+  --color-text-tertiary: rgba(0, 0, 0, 0.45);
+  --color-text-quaternary: rgba(0, 0, 0, 0.25);
+
+  --color-bg-container: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-layout: #f5f5f5;
+  --color-bg-hover: rgba(0, 0, 0, 0.04);
+
+  --color-border-primary: rgba(0, 0, 0, 0.15);
+  --color-border-secondary: rgba(0, 0, 0, 0.06);
+}
+
 html,
 body,
 #root {

@@ -16,8 +16,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       theme={{
         algorithm: theme.defaultAlgorithm,
         token: {
-          // 只修改布局背景，保持卡片为白色
+          // 布局背景
           colorBgLayout: '#f5f5f5',
+          
+          // 主题色
+          colorPrimary: '#8b5cf6',
+          colorInfo: '#3b82f6',
+          colorSuccess: '#10b981',
+          colorWarning: '#f59e0b',
+          colorError: '#ef4444',
         },
       }}
     >
