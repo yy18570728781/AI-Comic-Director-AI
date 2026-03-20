@@ -16,6 +16,8 @@ export interface ModelConfig {
   supportSeed?: boolean;
   supportNegativePrompt?: boolean;
   supportedModes?: string[];
+  billingMode?: 'per_second' | 'per_video';
+  fixedDuration?: number;
   maxDuration?: number;
   minDuration?: number;
   maxImages?: number;
@@ -41,6 +43,8 @@ export interface AiModel {
   priority: number;
   costPerImage?: number;
   creditsPerImage?: number;
+  costPerVideo?: number;
+  creditsPerVideo?: number;
   pricingTiers?: PricingTier[];
   config: ModelConfig;
   createdAt: string;
@@ -73,6 +77,8 @@ export interface CreateModelRequest {
   priority?: number;
   costPerImage?: number;
   creditsPerImage?: number;
+  costPerVideo?: number;
+  creditsPerVideo?: number;
   pricingTiers?: PricingTier[];
   config: ModelConfig;
 }
@@ -84,6 +90,8 @@ export interface UpdateModelRequest {
   priority?: number;
   costPerImage?: number;
   creditsPerImage?: number;
+  costPerVideo?: number;
+  creditsPerVideo?: number;
   pricingTiers?: PricingTier[];
   config?: ModelConfig;
 }

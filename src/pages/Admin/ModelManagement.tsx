@@ -103,7 +103,15 @@ export default function ModelManagement() {
         modelData.costPerImage = values.costPerImage;
         modelData.creditsPerImage = values.creditsPerImage;
       } else if (values.type === 'video') {
-        modelData.pricingTiers = values.pricingTiers;
+        const { billingMode } = values.config || {};
+        if (billingMode === 'per_video') {
+          // 按次计费
+          modelData.costPerVideo = values.costPerVideo;
+          modelData.creditsPerVideo = values.creditsPerVideo;
+        } else {
+          // 按秒计费
+          modelData.pricingTiers = values.pricingTiers;
+        }
       }
 
       const response = editingModel
@@ -236,16 +244,31 @@ export default function ModelManagement() {
               <div>积分: {record.creditsPerImage ?? 0}</div>
             </div>
           );
-        } else if (record.type === 'video' && record.pricingTiers?.length) {
-          return (
-            <div>
-              {record.pricingTiers.map((tier) => (
-                <div key={tier.resolution}>
-                  {tier.resolution}: {tier.creditsPerSecond}积分/秒
-                </div>
-              ))}
-            </div>
-          );
+        } else if (record.type === 'video') {
+          const { billingMode } = record.config || {};
+          if (billingMode === 'per_video') {
+            // 按次计费
+            const cost = typeof record.costPerVideo === 'string'
+              ? parseFloat(record.costPerVideo)
+              : record.costPerVideo;
+            return (
+              <div>
+                <div>按次: ¥{cost?.toFixed(2) ?? 0}</div>
+                <div>积分: {record.creditsPerVideo ?? 0}</div>
+              </div>
+            );
+          } else if (record.pricingTiers?.length) {
+            // 按秒计费
+            return (
+              <div>
+                {record.pricingTiers.map((tier) => (
+                  <div key={tier.resolution}>
+                    {tier.resolution}: {tier.creditsPerSecond}积分/秒
+                  </div>
+                ))}
+              </div>
+            );
+          }
         }
         return '-';
       },
@@ -474,61 +497,16 @@ export default function ModelManagement() {
               )}
 
               {modelType === 'video' && (
-                <Form.List name="pricingTiers">
-                  {(fields, { add, remove }) => (
-                    <>
-                      {fields.map(({ key, name, ...restField }) => (
-                        <Card key={key} size="small" style={{ marginBottom: 16 }}>
-                          <Space style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                            <Form.Item
-                              {...restField}
-                              label="分辨率"
-                              name={[name, 'resolution']}
-                              rules={[{ required: true, message: '请输入分辨率' }]}
-                            >
-                              <Input placeholder="如 720p" style={{ width: 120 }} />
-                            </Form.Item>
+                <>
+                  <Form.Item label="计费方式" name={['config', 'billingMode']} initialValue="per_second">
+                    <Select>
+                      <Select.Option value="per_second">按秒计费</Select.Option>
+                      <Select.Option value="per_video">按次计费（固定时长）</Select.Option>
+                    </Select>
+                  </Form.Item>
 
-                            <Form.Item
-                              {...restField}
-                              label="5秒成本（元）"
-                              name={[name, 'cost5s']}
-                              rules={[{ required: true, message: '请输入成本' }]}
-                            >
-                              <InputNumber
-                                placeholder="5秒视频成本"
-                                style={{ width: 150 }}
-                                min={0}
-                                step={0.01}
-                                precision={2}
-                              />
-                            </Form.Item>
-
-                            <Form.Item
-                              {...restField}
-                              label="每秒积分"
-                              name={[name, 'creditsPerSecond']}
-                              rules={[{ required: true, message: '请输入积分' }]}
-                            >
-                              <InputNumber
-                                placeholder="每秒消耗积分"
-                                style={{ width: 150 }}
-                                min={0}
-                              />
-                            </Form.Item>
-
-                            <Button type="link" danger onClick={() => remove(name)}>
-                              删除
-                            </Button>
-                          </Space>
-                        </Card>
-                      ))}
-                      <Button type="dashed" onClick={() => add()} block>
-                        添加定价层级
-                      </Button>
-                    </>
-                  )}
-                </Form.List>
+                  <VideoPricingForm />
+                </>
               )}
             </TabPane>
 
@@ -620,3 +598,194 @@ function VideoConfigForm() {
     </>
   );
 }
+
+// 视频定价表单组件
+function VideoPricingForm() {
+  const form = Form.useFormInstance();
+  const billingMode = Form.useWatch(['config', 'billingMode'], form);
+  const [calcVisible, setCalcVisible] = useState(false);
+  const [calcTokens, setCalcTokens] = useState<number>();
+  const [calcTokenPrice, setCalcTokenPrice] = useState<number>();
+  const [calcResult, setCalcResult] = useState<{ cost5s: number; creditsPerSecond: number }>();
+
+  const handleCalculate = () => {
+    if (!calcTokens || !calcTokenPrice) return;
+    
+    // 假设 5 秒视频消耗的 tokens（根据火山文档的参考值）
+    const cost5s = (calcTokens * calcTokenPrice) / 1000;
+    const creditsPerSecond = Math.ceil(cost5s * 10 / 5); // 转换为每秒积分
+    
+    setCalcResult({ cost5s, creditsPerSecond });
+  };
+
+  return (
+    <>
+      {billingMode === 'per_second' && (
+        <>
+          <Divider>按秒计费配置</Divider>
+          <Form.List name="pricingTiers">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Card key={key} size="small" style={{ marginBottom: 16 }}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Space style={{ width: '100%' }} align="baseline">
+                        <Form.Item
+                          {...restField}
+                          label="分辨率"
+                          name={[name, 'resolution']}
+                          rules={[{ required: true, message: '请输入分辨率' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input placeholder="如 720p" style={{ width: 120 }} />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...restField}
+                          label="5秒成本（元）"
+                          name={[name, 'cost5s']}
+                          rules={[{ required: true, message: '请输入成本' }]}
+                          style={{ marginBottom: 0 }}
+                          extra={
+                            <Button 
+                              type="link" 
+                              size="small" 
+                              onClick={() => setCalcVisible(!calcVisible)}
+                              style={{ padding: 0 }}
+                            >
+                              {calcVisible ? '隐藏' : '显示'}计算器
+                            </Button>
+                          }
+                        >
+                          <InputNumber
+                            placeholder="5秒视频成本"
+                            style={{ width: 150 }}
+                            min={0}
+                            step={0.01}
+                            precision={2}
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...restField}
+                          label="每秒积分"
+                          name={[name, 'creditsPerSecond']}
+                          rules={[{ required: true, message: '请输入积分' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            placeholder="每秒消耗积分"
+                            style={{ width: 150 }}
+                            min={0}
+                          />
+                        </Form.Item>
+
+                        <Button type="link" danger onClick={() => remove(name)}>
+                          删除
+                        </Button>
+                      </Space>
+
+                      {calcVisible && (
+                        <Card size="small" style={{ background: '#f5f5f5' }}>
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>价格计算器</div>
+                            <Space>
+                              <InputNumber
+                                placeholder="Tokens 消耗"
+                                value={calcTokens}
+                                onChange={setCalcTokens}
+                                style={{ width: 150 }}
+                                addonAfter="tokens"
+                              />
+                              <InputNumber
+                                placeholder="Token 单价"
+                                value={calcTokenPrice}
+                                onChange={setCalcTokenPrice}
+                                style={{ width: 150 }}
+                                addonAfter="元/千tokens"
+                                step={0.001}
+                                precision={3}
+                              />
+                              <Button type="primary" onClick={handleCalculate}>
+                                计算
+                              </Button>
+                            </Space>
+                            {calcResult && (
+                              <div style={{ marginTop: 8, padding: 8, background: '#fff', borderRadius: 4 }}>
+                                <div>5秒成本: ¥{calcResult.cost5s.toFixed(2)}</div>
+                                <div>每秒积分: {calcResult.creditsPerSecond}</div>
+                                <Button
+                                  size="small"
+                                  type="link"
+                                  onClick={() => {
+                                    const tiers = form.getFieldValue('pricingTiers') || [];
+                                    tiers[name] = {
+                                      ...tiers[name],
+                                      cost5s: calcResult.cost5s,
+                                      creditsPerSecond: calcResult.creditsPerSecond,
+                                    };
+                                    form.setFieldValue('pricingTiers', tiers);
+                                  }}
+                                >
+                                  应用到表单
+                                </Button>
+                              </div>
+                            )}
+                          </Space>
+                        </Card>
+                      )}
+                    </Space>
+                  </Card>
+                ))}
+                <Button type="dashed" onClick={() => add()} block>
+                  添加定价层级
+                </Button>
+              </>
+            )}
+          </Form.List>
+        </>
+      )}
+
+      {billingMode === 'per_video' && (
+        <>
+          <Divider>按次计费配置（固定时长）</Divider>
+          <Form.Item
+            label="固定时长（秒）"
+            name={['config', 'fixedDuration']}
+            rules={[{ required: true, message: '请输入固定时长' }]}
+            extra="如 Grok Video 3 固定 5 秒"
+          >
+            <InputNumber placeholder="固定时长" style={{ width: '100%' }} min={1} />
+          </Form.Item>
+
+          <Form.Item
+            label="每次成本（元）"
+            name="costPerVideo"
+            rules={[{ required: true, message: '请输入成本' }]}
+          >
+            <InputNumber
+              placeholder="每次生成成本"
+              style={{ width: '100%' }}
+              min={0}
+              step={0.01}
+              precision={2}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="每次积分"
+            name="creditsPerVideo"
+            rules={[{ required: true, message: '请输入积分' }]}
+          >
+            <InputNumber
+              placeholder="每次生成消耗积分"
+              style={{ width: '100%' }}
+              min={0}
+            />
+          </Form.Item>
+        </>
+      )}
+    </>
+  );
+}
+
