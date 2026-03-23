@@ -29,7 +29,9 @@ export interface ModelConfig {
 
 export interface PricingTier {
   resolution: string;
+  cost1s?: number;
   cost5s: number;
+  multiplier?: number;
   creditsPerSecond: number;
 }
 

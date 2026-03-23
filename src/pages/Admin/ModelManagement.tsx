@@ -1,9 +1,44 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Input, Space, Tag, message, Modal, Form, InputNumber, Select, Switch, Divider, Card, Tabs } from 'antd';
-import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { getPlatforms, getModels, createModel, updateModel, deleteModel, toggleModels } from '@/api/model';
+import {
+  Table,
+  Button,
+  Input,
+  Space,
+  Tag,
+  message,
+  Modal,
+  Form,
+  InputNumber,
+  Select,
+  Switch,
+  Divider,
+  Card,
+  Tabs,
+} from 'antd';
+import {
+  SearchOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+} from '@ant-design/icons';
+import {
+  getPlatforms,
+  getModels,
+  createModel,
+  updateModel,
+  deleteModel,
+  toggleModels,
+} from '@/api/model';
 import type { ColumnsType } from 'antd/es/table';
-import type { AiModel, Platform, CreateModelRequest, ModelConfig, PricingTier } from '@/api/model';
+import type {
+  AiModel,
+  Platform,
+  CreateModelRequest,
+  ModelConfig,
+  PricingTier,
+} from '@/api/model';
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
@@ -41,7 +76,12 @@ export default function ModelManagement() {
       const response = await getModels({
         type: typeFilter as any,
         platform: platformFilter,
-        enabled: enabledFilter === 'true' ? true : enabledFilter === 'false' ? false : undefined,
+        enabled:
+          enabledFilter === 'true'
+            ? true
+            : enabledFilter === 'false'
+              ? false
+              : undefined,
         page,
         pageSize,
       });
@@ -77,7 +117,11 @@ export default function ModelManagement() {
     setEditingModel(record);
     form.setFieldsValue({
       ...record,
-      pricingTiers: record.pricingTiers || [],
+      pricingTiers:
+        record.pricingTiers?.map((tier) => ({
+          ...tier,
+          multiplier: tier.multiplier || 2, // 确保倍率有默认值
+        })) || [],
     });
     setModalVisible(true);
   };
@@ -124,7 +168,9 @@ export default function ModelManagement() {
         form.resetFields();
         fetchModels();
       } else {
-        message.error(response.message || (editingModel ? '更新失败' : '创建失败'));
+        message.error(
+          response.message || (editingModel ? '更新失败' : '创建失败'),
+        );
       }
     } catch (error: any) {
       console.error('提交失败:', error);
@@ -194,8 +240,16 @@ export default function ModelManagement() {
       dataIndex: 'type',
       width: 100,
       render: (type: 'image' | 'video' | 'text') => {
-        const colorMap: Record<string, string> = { image: 'blue', video: 'purple', text: 'green' };
-        const textMap: Record<string, string> = { image: '图像', video: '视频', text: '文本' };
+        const colorMap: Record<string, string> = {
+          image: 'blue',
+          video: 'purple',
+          text: 'green',
+        };
+        const textMap: Record<string, string> = {
+          image: '图像',
+          video: '视频',
+          text: '文本',
+        };
         return <Tag color={colorMap[type]}>{textMap[type]}</Tag>;
       },
     },
@@ -204,7 +258,10 @@ export default function ModelManagement() {
       dataIndex: 'platform',
       width: 150,
       render: (platform: string) => {
-        const platformMap: Record<string, string> = platforms.reduce((acc, p) => ({ ...acc, [p.id]: p.name }), {});
+        const platformMap: Record<string, string> = platforms.reduce(
+          (acc, p) => ({ ...acc, [p.id]: p.name }),
+          {},
+        );
         return platformMap[platform] || platform;
       },
     },
@@ -235,9 +292,10 @@ export default function ModelManagement() {
       width: 200,
       render: (_, record) => {
         if (record.type === 'image') {
-          const cost = typeof record.costPerImage === 'string' 
-            ? parseFloat(record.costPerImage) 
-            : record.costPerImage;
+          const cost =
+            typeof record.costPerImage === 'string'
+              ? parseFloat(record.costPerImage)
+              : record.costPerImage;
           return (
             <div>
               <div>成本: ¥{cost?.toFixed(4) ?? 0}</div>
@@ -248,9 +306,10 @@ export default function ModelManagement() {
           const { billingMode } = record.config || {};
           if (billingMode === 'per_video') {
             // 按次计费
-            const cost = typeof record.costPerVideo === 'string'
-              ? parseFloat(record.costPerVideo)
-              : record.costPerVideo;
+            const cost =
+              typeof record.costPerVideo === 'string'
+                ? parseFloat(record.costPerVideo)
+                : record.costPerVideo;
             return (
               <div>
                 <div>按次: ¥{cost?.toFixed(2) ?? 0}</div>
@@ -286,7 +345,12 @@ export default function ModelManagement() {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
             编辑
           </Button>
           <Button
@@ -359,11 +423,19 @@ export default function ModelManagement() {
             <Space>
               {selectedRowKeys.length > 0 && (
                 <>
-                  <Button onClick={() => handleBatchToggle(true)}>批量启用</Button>
-                  <Button onClick={() => handleBatchToggle(false)}>批量禁用</Button>
+                  <Button onClick={() => handleBatchToggle(true)}>
+                    批量启用
+                  </Button>
+                  <Button onClick={() => handleBatchToggle(false)}>
+                    批量禁用
+                  </Button>
                 </>
               )}
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              >
                 新建模型
               </Button>
             </Space>
@@ -456,12 +528,20 @@ export default function ModelManagement() {
                 </Select>
               </Form.Item>
 
-              <Form.Item label="启用" name="enabled" valuePropName="checked" initialValue={true}>
+              <Form.Item
+                label="启用"
+                name="enabled"
+                valuePropName="checked"
+                initialValue={true}
+              >
                 <Switch />
               </Form.Item>
 
               <Form.Item label="优先级" name="priority" initialValue={0}>
-                <InputNumber placeholder="数值越大优先级越高" style={{ width: '100%' }} />
+                <InputNumber
+                  placeholder="数值越大优先级越高"
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </TabPane>
 
@@ -498,10 +578,16 @@ export default function ModelManagement() {
 
               {modelType === 'video' && (
                 <>
-                  <Form.Item label="计费方式" name={['config', 'billingMode']} initialValue="per_second">
+                  <Form.Item
+                    label="计费方式"
+                    name={['config', 'billingMode']}
+                    initialValue="per_second"
+                  >
                     <Select>
                       <Select.Option value="per_second">按秒计费</Select.Option>
-                      <Select.Option value="per_video">按次计费（固定时长）</Select.Option>
+                      <Select.Option value="per_video">
+                        按次计费（固定时长）
+                      </Select.Option>
                     </Select>
                   </Form.Item>
 
@@ -541,19 +627,35 @@ function ImageConfigForm() {
         <Select mode="tags" placeholder="如 1:1, 16:9, 9:16" />
       </Form.Item>
 
-      <Form.Item label="支持图生图" name={['config', 'supportImageToImage']} valuePropName="checked">
+      <Form.Item
+        label="支持图生图"
+        name={['config', 'supportImageToImage']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="支持多图融合" name={['config', 'supportMultiImageFusion']} valuePropName="checked">
+      <Form.Item
+        label="支持多图融合"
+        name={['config', 'supportMultiImageFusion']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="支持随机种子" name={['config', 'supportSeed']} valuePropName="checked">
+      <Form.Item
+        label="支持随机种子"
+        name={['config', 'supportSeed']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="支持负面提示词" name={['config', 'supportNegativePrompt']} valuePropName="checked">
+      <Form.Item
+        label="支持负面提示词"
+        name={['config', 'supportNegativePrompt']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
     </>
@@ -577,22 +679,38 @@ function VideoConfigForm() {
       </Form.Item>
 
       <Form.Item label="最大参考图数量" name={['config', 'maxImages']}>
-        <InputNumber placeholder="ref2v 模式用" style={{ width: '100%' }} min={1} />
+        <InputNumber
+          placeholder="ref2v 模式用"
+          style={{ width: '100%' }}
+          min={1}
+        />
       </Form.Item>
 
       <Form.Item label="分辨率选项" name={['config', 'resolutions']}>
         <Select mode="tags" placeholder="如 720p, 1080p" />
       </Form.Item>
 
-      <Form.Item label="支持镜头运动" name={['config', 'supportCameraMovement']} valuePropName="checked">
+      <Form.Item
+        label="支持镜头运动"
+        name={['config', 'supportCameraMovement']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="支持水印控制" name={['config', 'supportWatermark']} valuePropName="checked">
+      <Form.Item
+        label="支持水印控制"
+        name={['config', 'supportWatermark']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="支持音画同步" name={['config', 'supportGenerateAudio']} valuePropName="checked">
+      <Form.Item
+        label="支持音画同步"
+        name={['config', 'supportGenerateAudio']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
     </>
@@ -606,16 +724,83 @@ function VideoPricingForm() {
   const [calcVisible, setCalcVisible] = useState(false);
   const [calcTokens, setCalcTokens] = useState<number>();
   const [calcTokenPrice, setCalcTokenPrice] = useState<number>();
-  const [calcResult, setCalcResult] = useState<{ cost5s: number; creditsPerSecond: number }>();
+  const [calcResult, setCalcResult] = useState<{
+    cost5s: number;
+    creditsPerSecond: number;
+  }>();
 
   const handleCalculate = () => {
     if (!calcTokens || !calcTokenPrice) return;
-    
+
     // 假设 5 秒视频消耗的 tokens（根据火山文档的参考值）
     const cost5s = (calcTokens * calcTokenPrice) / 1000;
-    const creditsPerSecond = Math.ceil(cost5s * 10 / 5); // 转换为每秒积分
-    
+    const creditsPerSecond = Math.ceil((cost5s * 10) / 5); // 转换为每秒积分
+
     setCalcResult({ cost5s, creditsPerSecond });
+  };
+
+  // 计算积分的统一函数（保留1位小数，提高精度）
+  const calculateCredits = (cost1s: number, multiplier: number) => {
+    // 积分 = 成本 × 10 × 倍率，四舍五入保留1位小数
+    return Math.round(cost1s * 10 * multiplier * 10) / 10;
+  };
+
+  // 处理1秒成本变化，自动计算5秒成本和积分
+  const handleCost1sChange = (value: number | null, name: number) => {
+    if (value === null) return;
+    const tiers = form.getFieldValue('pricingTiers') || [];
+    const multiplier = tiers[name]?.multiplier;
+    tiers[name] = {
+      ...tiers[name],
+      cost1s: value,
+      cost5s: Math.ceil(value * 5 * 100) / 100, // 向上取整到分
+      creditsPerSecond: calculateCredits(value, multiplier),
+    };
+    form.setFieldValue('pricingTiers', tiers);
+  };
+
+  // 处理5秒成本变化，自动计算1秒成本和积分
+  const handleCost5sChange = (value: number | null, name: number) => {
+    if (value === null) return;
+    const tiers = form.getFieldValue('pricingTiers') || [];
+    const multiplier = tiers[name]?.multiplier;
+    const cost1s = Math.ceil((value / 5) * 100) / 100; // 向上取整到分
+    tiers[name] = {
+      ...tiers[name],
+      cost5s: value,
+      cost1s: cost1s,
+      creditsPerSecond: calculateCredits(cost1s, multiplier),
+    };
+    form.setFieldValue('pricingTiers', tiers);
+  };
+
+  // 应用计算结果到表单
+  const applyCalcResult = (name: number) => {
+    if (!calcResult) return;
+    const tiers = form.getFieldValue('pricingTiers') || [];
+    const multiplier = tiers[name]?.multiplier || 2;
+    const cost1s = calcResult.cost5s / 5;
+    tiers[name] = {
+      ...tiers[name],
+      cost5s: calcResult.cost5s,
+      cost1s: Math.ceil(cost1s * 100) / 100,
+      multiplier,
+      creditsPerSecond: calculateCredits(cost1s, multiplier),
+    };
+    form.setFieldValue('pricingTiers', tiers);
+  };
+
+  // 处理倍率变化，自动重新计算积分
+  const handleMultiplierChange = (value: number | null, name: number) => {
+    if (value === null) return;
+    const tiers = form.getFieldValue('pricingTiers') || [];
+    const cost1s = tiers[name]?.cost1s || 0;
+    tiers[name] = {
+      ...tiers[name],
+      multiplier: value,
+      creditsPerSecond: calculateCredits(cost1s, value),
+    };
+    form.setFieldValue('pricingTiers', tiers);
   };
 
   return (
@@ -642,14 +827,33 @@ function VideoPricingForm() {
 
                         <Form.Item
                           {...restField}
+                          label="1秒成本（元）"
+                          name={[name, 'cost1s']}
+                          rules={[{ required: true, message: '请输入1秒成本' }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            placeholder="1秒视频成本"
+                            style={{ width: 110 }}
+                            min={0}
+                            step={0.01}
+                            precision={2}
+                            onChange={(value) =>
+                              handleCost1sChange(value, name)
+                            }
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...restField}
                           label="5秒成本（元）"
                           name={[name, 'cost5s']}
-                          rules={[{ required: true, message: '请输入成本' }]}
+                          rules={[{ required: true, message: '请输入5秒成本' }]}
                           style={{ marginBottom: 0 }}
                           extra={
-                            <Button 
-                              type="link" 
-                              size="small" 
+                            <Button
+                              type="link"
+                              size="small"
                               onClick={() => setCalcVisible(!calcVisible)}
                               style={{ padding: 0 }}
                             >
@@ -659,10 +863,31 @@ function VideoPricingForm() {
                         >
                           <InputNumber
                             placeholder="5秒视频成本"
-                            style={{ width: 150 }}
+                            style={{ width: 110 }}
                             min={0}
                             step={0.01}
                             precision={2}
+                            onChange={(value) =>
+                              handleCost5sChange(value, name)
+                            }
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          {...restField}
+                          label="倍率"
+                          name={[name, 'multiplier']}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InputNumber
+                            placeholder="积分倍率"
+                            style={{ width: 80 }}
+                            min={0.1}
+                            step={0.1}
+                            precision={1}
+                            onChange={(value) =>
+                              handleMultiplierChange(value, name)
+                            }
                           />
                         </Form.Item>
 
@@ -674,9 +899,12 @@ function VideoPricingForm() {
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber
-                            placeholder="每秒消耗积分"
-                            style={{ width: 150 }}
+                            placeholder="自动计算"
+                            style={{ width: 110 }}
                             min={0}
+                            precision={1}
+                            readOnly
+                            addonAfter="积分"
                           />
                         </Form.Item>
 
@@ -688,19 +916,25 @@ function VideoPricingForm() {
                       {calcVisible && (
                         <Card size="small" style={{ background: '#f5f5f5' }}>
                           <Space direction="vertical" style={{ width: '100%' }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>价格计算器</div>
+                            <div
+                              style={{ fontWeight: 'bold', marginBottom: 8 }}
+                            >
+                              价格计算器
+                            </div>
                             <Space>
                               <InputNumber
                                 placeholder="Tokens 消耗"
                                 value={calcTokens}
-                                onChange={setCalcTokens}
+                                onChange={(v) => setCalcTokens(v ?? undefined)}
                                 style={{ width: 150 }}
                                 addonAfter="tokens"
                               />
                               <InputNumber
                                 placeholder="Token 单价"
                                 value={calcTokenPrice}
-                                onChange={setCalcTokenPrice}
+                                onChange={(v) =>
+                                  setCalcTokenPrice(v ?? undefined)
+                                }
                                 style={{ width: 150 }}
                                 addonAfter="元/千tokens"
                                 step={0.001}
@@ -711,21 +945,24 @@ function VideoPricingForm() {
                               </Button>
                             </Space>
                             {calcResult && (
-                              <div style={{ marginTop: 8, padding: 8, background: '#fff', borderRadius: 4 }}>
-                                <div>5秒成本: ¥{calcResult.cost5s.toFixed(2)}</div>
-                                <div>每秒积分: {calcResult.creditsPerSecond}</div>
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  padding: 8,
+                                  background: '#fff',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                <div>
+                                  5秒成本: ¥{calcResult.cost5s.toFixed(2)}
+                                </div>
+                                <div>
+                                  每秒积分: {calcResult.creditsPerSecond}
+                                </div>
                                 <Button
                                   size="small"
                                   type="link"
-                                  onClick={() => {
-                                    const tiers = form.getFieldValue('pricingTiers') || [];
-                                    tiers[name] = {
-                                      ...tiers[name],
-                                      cost5s: calcResult.cost5s,
-                                      creditsPerSecond: calcResult.creditsPerSecond,
-                                    };
-                                    form.setFieldValue('pricingTiers', tiers);
-                                  }}
+                                  onClick={() => applyCalcResult(name)}
                                 >
                                   应用到表单
                                 </Button>
@@ -737,7 +974,11 @@ function VideoPricingForm() {
                     </Space>
                   </Card>
                 ))}
-                <Button type="dashed" onClick={() => add()} block>
+                <Button
+                  type="dashed"
+                  onClick={() => add({ multiplier: 2 })}
+                  block
+                >
                   添加定价层级
                 </Button>
               </>
@@ -755,7 +996,11 @@ function VideoPricingForm() {
             rules={[{ required: true, message: '请输入固定时长' }]}
             extra="如 Grok Video 3 固定 5 秒"
           >
-            <InputNumber placeholder="固定时长" style={{ width: '100%' }} min={1} />
+            <InputNumber
+              placeholder="固定时长"
+              style={{ width: '100%' }}
+              min={1}
+            />
           </Form.Item>
 
           <Form.Item
@@ -788,4 +1033,3 @@ function VideoPricingForm() {
     </>
   );
 }
-
