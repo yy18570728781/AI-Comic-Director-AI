@@ -820,13 +820,6 @@ function VideoPricingForm() {
     form.setFieldValue("creditsPerVideo", creditsPerVideo);
   };
 
-  // 处理固定时长变化
-  // const handleFixedDurationChange = (value: number | null) => {
-  //   if (value === null) return;
-  //   // 这里可以添加时长变化时的逻辑，比如重新计算成本等
-  //   console.log("固定时长变化:", value);
-  // };
-
   return (
     <>
       {billingMode === "per_second" && (
