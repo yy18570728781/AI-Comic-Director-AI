@@ -790,7 +790,7 @@ function VideoPricingForm() {
     form.setFieldValue('pricingTiers', tiers);
   };
 
-  // 处理倍率变化，自动重新计算积分
+  // 处理倍率变化，自动重新计算积分（按秒计费）
   const handleMultiplierChange = (value: number | null, name: number) => {
     if (value === null) return;
     const tiers = form.getFieldValue('pricingTiers') || [];
@@ -801,6 +801,23 @@ function VideoPricingForm() {
       creditsPerSecond: calculateCredits(cost1s, value),
     };
     form.setFieldValue('pricingTiers', tiers);
+  };
+
+  // 处理每次成本变化，自动计算积分
+  const handleCostPerVideoChange = (value: number | null) => {
+    if (value === null) return;
+    const multiplier = form.getFieldValue('multiplier') || 2;
+    const creditsPerVideo = Math.round(value * 10 * multiplier);
+    form.setFieldValue('creditsPerVideo', creditsPerVideo);
+  };
+
+  // 处理倍率变化，自动重新计算积分（按次计费）
+  const handleVideoMultiplierChange = (value: number | null) => {
+    if (value === null) return;
+    const costPerVideo = form.getFieldValue('costPerVideo') || 0;
+    const creditsPerVideo = Math.round(costPerVideo * 10 * value);
+    form.setFieldValue('multiplier', value);
+    form.setFieldValue('creditsPerVideo', creditsPerVideo);
   };
 
   return (
@@ -878,6 +895,7 @@ function VideoPricingForm() {
                           label="倍率"
                           name={[name, 'multiplier']}
                           style={{ marginBottom: 0 }}
+                          extra="积分倍率：1.0表示无加价，2.0表示加价100%"
                         >
                           <InputNumber
                             placeholder="积分倍率"
@@ -897,6 +915,7 @@ function VideoPricingForm() {
                           name={[name, 'creditsPerSecond']}
                           rules={[{ required: true, message: '请输入积分' }]}
                           style={{ marginBottom: 0 }}
+                          extra="计算公式：1秒成本 × 10 × 倍率（1元=10积分）"
                         >
                           <InputNumber
                             placeholder="自动计算"
@@ -1000,6 +1019,7 @@ function VideoPricingForm() {
               placeholder="固定时长"
               style={{ width: '100%' }}
               min={1}
+              onChange={handleFixedDurationChange}
             />
           </Form.Item>
 
@@ -1014,6 +1034,23 @@ function VideoPricingForm() {
               min={0}
               step={0.01}
               precision={2}
+              onChange={handleCostPerVideoChange}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="倍率"
+            name="multiplier"
+            initialValue={2}
+            extra="积分倍率：1.0表示无加价，2.0表示加价100%"
+          >
+            <InputNumber
+              placeholder="积分倍率"
+              style={{ width: '100%' }}
+              min={0.1}
+              step={0.1}
+              precision={1}
+              onChange={handleVideoMultiplierChange}
             />
           </Form.Item>
 
@@ -1021,11 +1058,14 @@ function VideoPricingForm() {
             label="每次积分"
             name="creditsPerVideo"
             rules={[{ required: true, message: '请输入积分' }]}
+            extra="计算公式：每次成本 × 10 × 倍率（1元=10积分）"
           >
             <InputNumber
               placeholder="每次生成消耗积分"
               style={{ width: '100%' }}
               min={0}
+              readOnly
+              addonAfter="积分"
             />
           </Form.Item>
         </>
