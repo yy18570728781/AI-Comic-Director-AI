@@ -132,30 +132,23 @@ export default function ModelManagement() {
     const pricing = (record as any).pricing || undefined;
     const billingMode =
       pricing?.billingMode || (record as any).config?.billingMode;
-    const perSecondTiers =
-      pricing?.perSecond?.pricingTiers || record.pricingTiers || [];
+    const perSecondTiers = pricing?.pricingTiers || [];
     const perVideo = pricing?.perVideo;
     form.setFieldsValue({
       ...record,
       pricing: {
         ...(pricing || {}),
         billingMode: billingMode || 'per_second',
-        perSecond: {
-          ...(pricing?.perSecond || {}),
-          pricingTiers: perSecondTiers.map((tier: any) => ({
-            ...tier,
-            multiplier: tier.multiplier || 2,
-          })),
-        },
+        pricingTiers: perSecondTiers.map((tier: any) => ({
+          ...tier,
+          multiplier: tier.multiplier || 2,
+        })),
         perVideo: perVideo
           ? {
               ...perVideo,
             }
           : undefined,
       },
-      costPerVideo: undefined,
-      creditsPerVideo: undefined,
-      pricingTiers: undefined,
     });
     setModalVisible(true);
   };
@@ -201,9 +194,7 @@ export default function ModelManagement() {
           modelData.pricing = {
             modelType: 'video',
             billingMode: 'per_second',
-            perSecond: {
-              pricingTiers: values.pricing?.perSecond?.pricingTiers,
-            },
+            pricingTiers: values.pricing?.pricingTiers,
           };
         }
       }
@@ -344,10 +335,10 @@ export default function ModelManagement() {
         if (record.type === 'image') {
           const pricing = (record as any).pricing || undefined;
           const costPerImage = toSafeNumber(
-            pricing?.image?.costPerImage ?? record.costPerImage,
+            pricing?.image?.costPerImage,
           );
           const creditsPerImage =
-            pricing?.image?.creditsPerImage ?? record.creditsPerImage;
+            pricing?.image?.creditsPerImage;
           return (
             <div>
               <div>成本: ¥{costPerImage?.toFixed(4) ?? '0.0000'}</div>
@@ -361,23 +352,19 @@ export default function ModelManagement() {
           if (billingMode === 'per_video') {
             // 按次计费
             const costPerVideo = toSafeNumber(
-              pricing?.perVideo?.costPerVideo ?? record.costPerVideo,
+              pricing?.perVideo?.costPerVideo,
             );
             const creditsPerVideo =
-              pricing?.perVideo?.creditsPerVideo ?? record.creditsPerVideo;
+              pricing?.perVideo?.creditsPerVideo;
             return (
               <div>
                 <div>按次: ¥{costPerVideo?.toFixed(2) ?? '0.00'}</div>
                 <div>积分: {creditsPerVideo ?? 0}</div>
               </div>
             );
-          } else if (
-            pricing?.perSecond?.pricingTiers?.length ||
-            record.pricingTiers?.length
-          ) {
+          } else if (pricing?.pricingTiers?.length) {
             // 按秒计费
-            const tiers =
-              pricing?.perSecond?.pricingTiers || record.pricingTiers;
+            const tiers = pricing?.pricingTiers;
             return (
               <div>
                 {tiers.map((tier: any) => (
@@ -809,7 +796,7 @@ function VideoPricingForm() {
   const handleCost1sChange = (value: number | null, name: number) => {
     if (value === null) return;
     const tiers =
-      form.getFieldValue(['pricing', 'perSecond', 'pricingTiers']) || [];
+      form.getFieldValue(['pricing', 'pricingTiers']) || [];
     const multiplier = tiers[name]?.multiplier;
     tiers[name] = {
       ...tiers[name],
@@ -817,14 +804,14 @@ function VideoPricingForm() {
       cost5s: Math.ceil(value * 5 * 100) / 100, // 向上取整到分
       creditsPerSecond: calculateCredits(value, multiplier),
     };
-    form.setFieldValue(['pricing', 'perSecond', 'pricingTiers'], tiers);
+    form.setFieldValue(['pricing', 'pricingTiers'], tiers);
   };
 
   // 处理5秒成本变化，自动计算1秒成本和积分
   const handleCost5sChange = (value: number | null, name: number) => {
     if (value === null) return;
     const tiers =
-      form.getFieldValue(['pricing', 'perSecond', 'pricingTiers']) || [];
+      form.getFieldValue(['pricing', 'pricingTiers']) || [];
     const multiplier = tiers[name]?.multiplier;
     const cost1s = Math.ceil((value / 5) * 100) / 100; // 向上取整到分
     tiers[name] = {
@@ -833,14 +820,14 @@ function VideoPricingForm() {
       cost1s: cost1s,
       creditsPerSecond: calculateCredits(cost1s, multiplier),
     };
-    form.setFieldValue(['pricing', 'perSecond', 'pricingTiers'], tiers);
+    form.setFieldValue(['pricing', 'pricingTiers'], tiers);
   };
 
   // 应用计算结果到表单
   const applyCalcResult = (name: number) => {
     if (!calcResult) return;
     const tiers =
-      form.getFieldValue(['pricing', 'perSecond', 'pricingTiers']) || [];
+      form.getFieldValue(['pricing', 'pricingTiers']) || [];
     const multiplier = tiers[name]?.multiplier || 2;
     const cost1s = calcResult.cost5s / 5;
     tiers[name] = {
@@ -850,21 +837,21 @@ function VideoPricingForm() {
       multiplier,
       creditsPerSecond: calculateCredits(cost1s, multiplier),
     };
-    form.setFieldValue(['pricing', 'perSecond', 'pricingTiers'], tiers);
+    form.setFieldValue(['pricing', 'pricingTiers'], tiers);
   };
 
   // 处理倍率变化，自动重新计算积分（按秒计费）
   const handleMultiplierChange = (value: number | null, name: number) => {
     if (value === null) return;
     const tiers =
-      form.getFieldValue(['pricing', 'perSecond', 'pricingTiers']) || [];
+      form.getFieldValue(['pricing', 'pricingTiers']) || [];
     const cost1s = tiers[name]?.cost1s || 0;
     tiers[name] = {
       ...tiers[name],
       multiplier: value,
       creditsPerSecond: calculateCredits(cost1s, value),
     };
-    form.setFieldValue(['pricing', 'perSecond', 'pricingTiers'], tiers);
+    form.setFieldValue(['pricing', 'pricingTiers'], tiers);
   };
 
   // 处理每次成本变化，自动计算积分
@@ -897,7 +884,7 @@ function VideoPricingForm() {
       {billingMode === 'per_second' && (
         <>
           <Divider>按秒计费配置</Divider>
-          <Form.List name={['pricing', 'perSecond', 'pricingTiers']}>
+          <Form.List name={['pricing', 'pricingTiers']}>
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...restField }) => (

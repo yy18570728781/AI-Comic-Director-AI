@@ -42,14 +42,11 @@ export interface PricingTier {
 export interface AiModelPricing {
   modelType: 'image' | 'video' | 'text';
   billingMode?: 'per_second' | 'per_video';
+  pricingTiers?: PricingTier[];
   perVideo?: {
     costPerVideo?: number;
     creditsPerVideo?: number;
     fixedDuration?: number;
-    ext?: Record<string, any>;
-  };
-  perSecond?: {
-    pricingTiers?: PricingTier[];
     ext?: Record<string, any>;
   };
   image?: {
@@ -69,12 +66,6 @@ export interface AiModel {
   enabled: boolean;
   priority: number;
   pricing?: AiModelPricing;
-  // legacy fields (kept for compatibility with older server responses)
-  costPerImage?: number;
-  creditsPerImage?: number;
-  costPerVideo?: number;
-  creditsPerVideo?: number;
-  pricingTiers?: PricingTier[];
   config: ModelConfig;
   createdAt: string;
   updatedAt: string;
@@ -105,12 +96,6 @@ export interface CreateModelRequest {
   enabled?: boolean;
   priority?: number;
   pricing?: AiModelPricing;
-  // legacy fields (kept for compatibility)
-  costPerImage?: number;
-  creditsPerImage?: number;
-  costPerVideo?: number;
-  creditsPerVideo?: number;
-  pricingTiers?: PricingTier[];
   config: ModelConfig;
 }
 
@@ -120,12 +105,6 @@ export interface UpdateModelRequest {
   enabled?: boolean;
   priority?: number;
   pricing?: AiModelPricing;
-  // legacy fields (kept for compatibility)
-  costPerImage?: number;
-  creditsPerImage?: number;
-  costPerVideo?: number;
-  creditsPerVideo?: number;
-  pricingTiers?: PricingTier[];
   config?: ModelConfig;
 }
 
