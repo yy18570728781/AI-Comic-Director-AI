@@ -40,6 +40,10 @@ interface ModelConfig {
       creditsPerVideo?: number;
       fixedDuration?: number;
     };
+    image?: {
+      costPerImage?: number;
+      creditsPerImage?: number;
+    };
   };
   config?: {
     resolutions?: string[];

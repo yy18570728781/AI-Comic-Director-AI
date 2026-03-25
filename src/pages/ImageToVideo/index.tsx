@@ -46,6 +46,10 @@ interface ModelConfig {
       creditsPerVideo?: number;
       fixedDuration?: number;
     };
+    image?: {
+      costPerImage?: number;
+      creditsPerImage?: number;
+    };
   };
   config?: {
     supportedModes?: string[];  // 支持的生成模式
