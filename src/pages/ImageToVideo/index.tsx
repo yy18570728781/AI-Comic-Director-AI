@@ -36,10 +36,17 @@ interface ModelConfig {
   id: string;
   name: string;
   description: string;
-  pricing?: Array<{
-    resolution: string;
-    creditsPerSecond: number;
-  }>;
+  pricing?: {
+    billingMode?: 'per_second' | 'per_video';
+    pricingTiers?: Array<{
+      resolution: string;
+      creditsPerSecond: number;
+    }>;
+    perVideo?: {
+      creditsPerVideo?: number;
+      fixedDuration?: number;
+    };
+  };
   config?: {
     supportedModes?: string[];  // 支持的生成模式
     resolutions?: string[];
@@ -160,14 +167,15 @@ function ImageToVideo() {
   const currentModel = models.find((m) => m.id === videoModel) as ModelConfig | undefined;
   const modelConfig = currentModel?.config;
 
-  // 计算当前积分消费
-  const getCreditsPerSecond = () => {
-    if (!currentModel?.pricing) return 2;  // 默认 2积分/秒
-    const tier = currentModel.pricing.find(p => p.resolution === resolution);
-    return tier?.creditsPerSecond ?? currentModel.pricing[0]?.creditsPerSecond ?? 2;
-  };
-  const creditsPerSecond = getCreditsPerSecond();
-  const totalCredits = creditsPerSecond * duration * batchCount;
+  const pricing = currentModel?.pricing;
+  const billingMode = pricing?.billingMode ?? 'per_second';
+  const pricingTiers = pricing?.pricingTiers ?? [];
+  const matchedTier = pricingTiers.find((p) => p.resolution === resolution) ?? pricingTiers[0];
+  const creditsPerSecond = matchedTier?.creditsPerSecond ?? 2;
+  const creditsPerVideo = pricing?.perVideo?.creditsPerVideo ?? creditsPerSecond;
+  const totalCredits = billingMode === 'per_video'
+    ? creditsPerVideo * batchCount
+    : creditsPerSecond * duration * batchCount;
   const hasEnoughPoints = (currentUser?.points ?? 0) >= totalCredits;
 
   // 根据模型支持的 mode 计算最大图片数量
@@ -549,7 +557,9 @@ function ImageToVideo() {
                     ))}
                   </div>
                   <div style={{ fontSize: 12, color: token.colorTextTertiary, marginTop: 4 }}>
-                    💡 每次最多生成5个视频，消耗积分 = {creditsPerSecond}/秒 × {duration}秒 × 数量
+                    {billingMode === 'per_video'
+                      ? `💡 每次最多生成5个视频，当前模型按次计费：${creditsPerVideo}积分/次 × 数量`
+                      : `💡 每次最多生成5个视频，消耗积分 = ${creditsPerSecond}/秒 × ${duration}秒 × 数量`}
                   </div>
                 </div>
 

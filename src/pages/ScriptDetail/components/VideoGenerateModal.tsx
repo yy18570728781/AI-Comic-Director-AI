@@ -30,6 +30,17 @@ interface ModelConfig {
   id: string;
   name: string;
   description: string;
+  pricing?: {
+    billingMode?: 'per_second' | 'per_video';
+    pricingTiers?: Array<{
+      resolution: string;
+      creditsPerSecond: number;
+    }>;
+    perVideo?: {
+      creditsPerVideo?: number;
+      fixedDuration?: number;
+    };
+  };
   config?: {
     resolutions?: string[];
     aspectRatios?: string[];
@@ -70,9 +81,12 @@ export default function VideoGenerateModal({
   const resolution = Form.useWatch('resolution', form) || '720p';
   
   const selectedModel = videoModels.find(m => m.id === videoModel);
-  const pricingTier = selectedModel?.pricing?.find(p => p.resolution === resolution);
+  const pricing = selectedModel?.pricing;
+  const billingMode = pricing?.billingMode ?? 'per_second';
+  const pricingTier = pricing?.pricingTiers?.find((p) => p.resolution === resolution) ?? pricing?.pricingTiers?.[0];
   const creditsPerSecond = pricingTier?.creditsPerSecond || 2;
-  const requiredCredits = creditsPerSecond * duration;
+  const creditsPerVideo = pricing?.perVideo?.creditsPerVideo ?? creditsPerSecond;
+  const requiredCredits = billingMode === 'per_video' ? creditsPerVideo : creditsPerSecond * duration;
 
   // 获取模型列表
   useEffect(() => {
