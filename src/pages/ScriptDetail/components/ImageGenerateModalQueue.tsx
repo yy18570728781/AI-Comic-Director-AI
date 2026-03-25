@@ -48,7 +48,7 @@ export default function ImageGenerateModalQueue({
 
   // 计算所需积分
   const selectedModel = imageModels.find(m => m.id === imageModel);
-  const requiredCredits = selectedModel?.creditsPerImage || 0;
+  const requiredCredits = selectedModel?.pricing?.image?.creditsPerImage || 0;
 
   // 使用全局任务 store
   const { addTask } = useTaskStore();

@@ -28,7 +28,11 @@ interface ModelConfig {
   id: string;
   name: string;
   description: string;
-  creditsPerImage?: number;
+  pricing?: {
+    image?: {
+      creditsPerImage?: number;
+    };
+  };
   config?: {
     aspectRatios?: string[];
     qualities?: string[];
@@ -123,7 +127,7 @@ function ImageToImage() {
   const modelConfig = currentModel?.config;
 
   // 计算当前积分消费
-  const creditsPerImage = currentModel?.creditsPerImage ?? 5;  // 默认5积分
+  const creditsPerImage = currentModel?.pricing?.image?.creditsPerImage ?? 5;  // 默认5积分
   const totalCredits = creditsPerImage * batchCount;
   const hasEnoughPoints = (currentUser?.points ?? 0) >= totalCredits;
 

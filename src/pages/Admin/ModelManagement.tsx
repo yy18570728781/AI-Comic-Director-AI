@@ -130,15 +130,16 @@ export default function ModelManagement() {
   const handleEdit = (record: AiModel) => {
     setEditingModel(record);
     const pricing = (record as any).pricing || undefined;
-    const billingMode =
-      pricing?.billingMode || (record as any).config?.billingMode;
-    const perSecondTiers = pricing?.pricingTiers || [];
+    const billingMode = pricing?.billingMode || 'per_second';
+    const perSecondTiers = Array.isArray(pricing?.pricingTiers)
+      ? pricing.pricingTiers
+      : [];
     const perVideo = pricing?.perVideo;
     form.setFieldsValue({
       ...record,
       pricing: {
         ...(pricing || {}),
-        billingMode: billingMode || 'per_second',
+        billingMode,
         pricingTiers: perSecondTiers.map((tier: any) => ({
           ...tier,
           multiplier: tier.multiplier || 2,
@@ -347,8 +348,7 @@ export default function ModelManagement() {
           );
         } else if (record.type === 'video') {
           const pricing = (record as any).pricing || undefined;
-          const billingMode =
-            pricing?.billingMode || (record as any).config?.billingMode;
+          const billingMode = pricing?.billingMode || 'per_second';
           if (billingMode === 'per_video') {
             // 按次计费
             const costPerVideo = toSafeNumber(
@@ -362,9 +362,12 @@ export default function ModelManagement() {
                 <div>积分: {creditsPerVideo ?? 0}</div>
               </div>
             );
-          } else if (pricing?.pricingTiers?.length) {
+          } else if (
+            Array.isArray(pricing?.pricingTiers) &&
+            pricing.pricingTiers.length
+          ) {
             // 按秒计费
-            const tiers = pricing?.pricingTiers;
+            const tiers = pricing.pricingTiers;
             return (
               <div>
                 {tiers.map((tier: any) => (
