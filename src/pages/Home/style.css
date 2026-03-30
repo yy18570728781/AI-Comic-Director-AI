@@ -229,12 +229,13 @@
 }
 
 .home-gradient-text {
-  background: linear-gradient(135deg, var(--home-accent-start) 0%, var(--home-accent-end) 50%, var(--home-accent-start) 100%);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.96) 38%, rgba(235, 241, 255, 0.92) 68%, rgba(210, 222, 248, 0.88) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   background-size: 200% 200%;
   animation: gradientShift 4s ease infinite;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.18));
 }
 
 @keyframes gradientShift {
