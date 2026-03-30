@@ -12,6 +12,7 @@ import {
   AppstoreOutlined,
   SettingOutlined,
   DatabaseOutlined,
+  ShopOutlined,
 } from '@ant-design/icons';
 
 export const topMenuItems: MenuProps['items'] = [
@@ -30,6 +31,11 @@ export const topMenuItems: MenuProps['items'] = [
       { key: '/image-to-image', icon: <CameraOutlined />, label: '图片创作' },
       { key: '/image-to-video', icon: <VideoCameraOutlined />, label: '视频创作' },
     ],
+  },
+  {
+    key: '/ecommerce-zone',
+    icon: <ShopOutlined />,
+    label: '电商专区',
   },
   {
     key: 'resources',
