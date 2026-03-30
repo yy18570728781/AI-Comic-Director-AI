@@ -91,12 +91,11 @@ export default function Home() {
         <div className="home-hero-overlay" />
         <div className="home-hero-glow" />
         <h1 className="home-hero-title">
-          <span className="home-gradient-text">蓝星 AI</span>
-          {theme === 'theme1' && <span className="home-hero-badge">一站式AI短剧制作中心</span>}
+          <span className="home-gradient-text">一站式AI短剧制作中心</span>
         </h1>
-        {theme === 'theme2' && (
-          <p className="home-hero-subtitle">从剧本到分镜，从画面到视频，一站式 AI 漫剧生产工作流</p>
-        )}
+        <p className="home-hero-subtitle">
+          智能平台高效创作 | 小投入产出大流量
+        </p>
         <Space size="large" style={{ marginTop: 40 }}>
           <Button type="primary" size="large" icon={<ThunderboltOutlined />} className="home-cta-btn" onClick={handleCTA}>
             开始创作

@@ -126,20 +126,22 @@
 }
 
 .topnav-recharge-btn {
-  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+  background: linear-gradient(90deg, #4fb4f7 0%, #7a47f4 100%) !important;
   border: none !important;
   color: #fff !important;
-  border-radius: 8px !important;
-  font-weight: 500 !important;
-  height: 36px !important;
-  padding: 0 20px !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  padding: 0 24px !important;
   font-size: 14px !important;
-  transition: opacity 0.2s, transform 0.2s !important;
+  box-shadow: 0 10px 24px rgba(90, 103, 242, 0.28) !important;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s !important;
 }
 
 .topnav-recharge-btn:hover {
-  opacity: 0.85 !important;
   transform: translateY(-1px) !important;
+  box-shadow: 0 14px 30px rgba(90, 103, 242, 0.34) !important;
+  filter: brightness(1.03) !important;
   color: #fff !important;
 }
 

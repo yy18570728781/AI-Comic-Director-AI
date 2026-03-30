@@ -1,5 +1,5 @@
 /* ==================== 主题1：星空宇宙风 ==================== */
-[data-theme="theme1"] {
+[data-theme='theme1'] {
   --home-bg: #06061a;
   --home-bg-secondary: rgba(20, 10, 60, 0.6);
   --home-text: #e8e4ff;
@@ -24,7 +24,7 @@
 }
 
 /* ==================== 主题2：简约暗色风 ==================== */
-[data-theme="theme2"] {
+[data-theme='theme2'] {
   --home-bg: #0a0a1a;
   --home-bg-secondary: rgba(255, 255, 255, 0.02);
   --home-text: #e0e0f0;
@@ -61,7 +61,7 @@
 /* ==================== 主题1 星空专属装饰 ==================== */
 
 /* 星云背景层 */
-[data-theme="theme1"] .home-container::before {
+[data-theme='theme1'] .home-container::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -74,14 +74,14 @@
 }
 
 /* 星星闪烁 - 仅主题1 */
-[data-theme="theme1"] .home-stars {
+[data-theme='theme1'] .home-stars {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
 }
 
-[data-theme="theme1"] .star {
+[data-theme='theme1'] .star {
   position: absolute;
   width: 2px;
   height: 2px;
@@ -91,8 +91,15 @@
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.5); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
 }
 
 /* 粒子 - 两个主题不同颜色 */
@@ -112,19 +119,39 @@
   animation: floatUp linear infinite;
 }
 
-[data-theme="theme1"] .particle { background: rgba(168, 85, 247, 0.5); }
-[data-theme="theme1"] .particle:nth-child(odd) { background: rgba(59, 130, 246, 0.4); width: 3px; height: 3px; }
-[data-theme="theme2"] .particle { background: rgba(120, 100, 255, 0.5); }
-[data-theme="theme2"] .particle:nth-child(odd) { background: rgba(80, 200, 255, 0.4); width: 3px; height: 3px; }
-
-@keyframes floatUp {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 0.6; }
-  100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
+[data-theme='theme1'] .particle {
+  background: rgba(168, 85, 247, 0.5);
+}
+[data-theme='theme1'] .particle:nth-child(odd) {
+  background: rgba(59, 130, 246, 0.4);
+  width: 3px;
+  height: 3px;
+}
+[data-theme='theme2'] .particle {
+  background: rgba(120, 100, 255, 0.5);
+}
+[data-theme='theme2'] .particle:nth-child(odd) {
+  background: rgba(80, 200, 255, 0.4);
+  width: 3px;
+  height: 3px;
 }
 
-
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.3);
+    opacity: 0;
+  }
+}
 
 /* ==================== Hero ==================== */
 .home-hero {
@@ -165,7 +192,13 @@
   margin-top: 60px;
   overflow: hidden;
   mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 10%,
+    #000 90%,
+    transparent 100%
+  );
 }
 
 .home-showcase-track {
@@ -196,8 +229,12 @@
 }
 
 @keyframes scrollShowcase {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .home-hero-glow {
@@ -212,7 +249,7 @@
 }
 
 /* 主题1 额外光晕 */
-[data-theme="theme1"] .home-hero-glow {
+[data-theme='theme1'] .home-hero-glow {
   width: 800px;
   height: 800px;
   background:
@@ -221,50 +258,71 @@
 }
 
 .home-hero-title {
-  font-size: clamp(36px, 6vw, 72px);
-  font-weight: 800;
-  line-height: 1.15;
+  font-size: clamp(42px, 7vw, 84px);
+  font-weight: 900;
+  line-height: 1.06;
   margin: 0;
-  letter-spacing: -1px;
+  letter-spacing: -2px;
+  text-align: center;
 }
 
 .home-gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.96) 38%, rgba(235, 241, 255, 0.92) 68%, rgba(210, 222, 248, 0.88) 100%);
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.98) 55%,
+    rgba(235, 241, 255, 0.94) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-size: 200% 200%;
-  animation: gradientShift 4s ease infinite;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.18));
+  background-size: 100% 100%;
+  display: inline-block;
+  filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.14));
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .home-hero-subtitle {
-  font-size: clamp(16px, 2.5vw, 22px);
-  color: var(--home-text-secondary);
-  margin-top: 20px;
-  max-width: 600px;
+  font-size: clamp(18px, 2.2vw, 20px);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 40px;
+  max-width: 720px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.24);
 }
 
 /* CTA 按钮 */
 .home-cta-btn {
-  height: 48px !important;
-  padding: 0 36px !important;
+  height: 46px !important;
+  padding: 0 34px !important;
   font-size: 16px !important;
-  border-radius: 24px !important;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(90deg, #4fb4f7 0%, #7a47f4 100%) !important;
   border: none !important;
-  box-shadow: 0 4px 24px rgba(168, 85, 247, 0.4) !important;
-  transition: transform 0.2s, box-shadow 0.2s !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(90, 103, 242, 0.28) !important;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    filter 0.2s !important;
 }
 
 .home-cta-btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.5) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 30px rgba(90, 103, 242, 0.34) !important;
+  filter: brightness(1.03) !important;
 }
 
 .home-ghost-btn {
@@ -309,7 +367,10 @@
   border-radius: 16px;
   padding: 32px 24px;
   text-align: center;
-  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    border-color 0.3s,
+    box-shadow 0.3s;
   animation: fadeInUp 0.6s ease both;
 }
 
@@ -320,8 +381,14 @@
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .home-feature-icon {
@@ -416,12 +483,12 @@
 }
 
 /* ==================== 主题1 专属：卡片玻璃态 ==================== */
-[data-theme="theme1"] .home-feature-card {
+[data-theme='theme1'] .home-feature-card {
   backdrop-filter: blur(12px);
   background: rgba(139, 92, 246, 0.08);
 }
 
-[data-theme="theme1"] .home-workflow-step {
+[data-theme='theme1'] .home-workflow-step {
   backdrop-filter: blur(12px);
 }
 
@@ -445,7 +512,6 @@
   }
 }
 
-
 .home-hero-badge {
   display: inline-flex;
   align-items: center;
@@ -462,5 +528,3 @@
   vertical-align: middle;
   box-shadow: 0 4px 20px rgba(217, 70, 239, 0.4);
 }
-
-
