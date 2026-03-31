@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Input, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Input, Modal, Select, Space, Table, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { SearchOutlined } from '@ant-design/icons';
+import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { getAdminPointRecords } from '@/api/adminPointRecord';
 import { getUserList } from '@/api/user';
 import type { AdminPointRecord } from '@/api/adminPointRecord';
@@ -62,6 +62,24 @@ const taskTypeTextMap: Record<string, string> = {
   video: '视频',
 };
 
+const businessTypeTextMap: Record<string, string> = {
+  recharge_payment: '支付充值',
+  admin_recharge: '后台充值',
+  image_generate: '图片生成扣费',
+  image_refund: '图片生成退款',
+  video_generate: '视频生成扣费',
+  video_refund: '视频生成退款',
+};
+
+const sourceTextMap: Record<string, string> = {
+  'queue:image': '图片队列',
+  'queue:video': '视频队列',
+  'admin:user': '后台用户管理',
+  'payment:wechat_jsapi': '微信 JSAPI 支付',
+  'payment:wechat_h5': '微信 H5 支付',
+  'payment:wechat_native': '微信扫码支付',
+};
+
 /**
  * 管理后台积分流水页。
  * 筛选区和表格交互尽量对齐模型管理页，方便运营同学快速上手。
@@ -80,6 +98,8 @@ export default function PointRecordManagement() {
   const [sourceFilter, setSourceFilter] = useState<string>();
   const [keyword, setKeyword] = useState('');
   const [keywordInput, setKeywordInput] = useState('');
+  const [snapshotModalOpen, setSnapshotModalOpen] = useState(false);
+  const [currentSnapshotRecord, setCurrentSnapshotRecord] = useState<AdminPointRecord | null>(null);
 
   const fetchUserOptions = async () => {
     try {
@@ -149,6 +169,11 @@ export default function PointRecordManagement() {
     setKeywordInput('');
   };
 
+  const openSnapshotModal = (record: AdminPointRecord) => {
+    setCurrentSnapshotRecord(record);
+    setSnapshotModalOpen(true);
+  };
+
   const columns: ColumnsType<AdminPointRecord> = [
     {
       title: 'ID',
@@ -203,13 +228,33 @@ export default function PointRecordManagement() {
       title: '业务类型',
       dataIndex: 'businessType',
       width: 160,
-      render: (businessType?: string) => businessType || '-',
+      render: (businessType?: string) =>
+        businessType ? (
+          <Tag color="purple">{businessTypeTextMap[businessType] || businessType}</Tag>
+        ) : '-',
     },
     {
       title: '来源',
       dataIndex: 'source',
       width: 160,
-      render: (source?: string) => source || '-',
+      render: (source?: string) =>
+        source ? <Tag>{sourceTextMap[source] || source}</Tag> : '-',
+    },
+    {
+      title: '请求快照',
+      dataIndex: 'requestSnapshot',
+      width: 120,
+      render: (requestSnapshot: AdminPointRecord['requestSnapshot'], record) =>
+        requestSnapshot ? (
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => openSnapshotModal(record)}
+          >
+            查看详情
+          </Button>
+        ) : '-',
     },
     {
       title: '任务ID',
@@ -329,6 +374,42 @@ export default function PointRecordManagement() {
           scroll={{ x: 1800 }}
         />
       </Card>
+
+      <Modal
+        title={`请求快照详情${currentSnapshotRecord ? ` - #${currentSnapshotRecord.id}` : ''}`}
+        open={snapshotModalOpen}
+        footer={null}
+        width={720}
+        onCancel={() => {
+          setSnapshotModalOpen(false);
+          setCurrentSnapshotRecord(null);
+        }}
+      >
+        <div
+          style={{
+            maxHeight: 520,
+            overflow: 'auto',
+            background: '#fafafa',
+            border: '1px solid #f0f0f0',
+            borderRadius: 8,
+            padding: 16,
+          }}
+        >
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontSize: 13,
+              lineHeight: 1.7,
+            }}
+          >
+            {currentSnapshotRecord?.requestSnapshot
+              ? JSON.stringify(currentSnapshotRecord.requestSnapshot, null, 2)
+              : '暂无请求快照'}
+          </pre>
+        </div>
+      </Modal>
     </div>
   );
 }
