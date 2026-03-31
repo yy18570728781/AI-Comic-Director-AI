@@ -20,30 +20,33 @@ const features = [
 
 const workflowSteps = ['输入故事大纲', 'AI 生成分镜', '生成画面', '合成视频'];
 
-const showcaseImages = [
-  'https://cdn.jeff1992.com/ai-video/2025/09/10/20250909164452_2.jpg',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/aa81c5c4d4ca434989278335f68ea243.png',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/a180958c835e4aaa92f029bce31b0f31.png',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/5971e82c857a485a9befb80022acfe26.png',
-  'https://cdn.jeff1992.com/ai-video/2025/09/10/20250909164518_21.png',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/15/2af985bcd0e448359ac15279680714d0.png',
-  'https://cdn.jeff1992.com/ai-video/2026/02/11/danglaoban.jpeg',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/079c9d2fc312427d88b01a8ae6e55270.jpg',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/9b08875175164d4693a6c6d7be7a36f1.jpg',
-  'https://cdn.jeff1992.com/ai-video/2025/09/10/gongzhudianxia.jpeg',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/9f36c48412b9420c960abd9eb3053b8b.png',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/16/a6e65426c8c84348a880597282a82708.png',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/20/1ed762b9ef394c23b83da56dcd498a81.jpg',
-  'https://cdn.jeff1992.com/j1-common-bucket/2025/10/20/4a54eb5db72b425187c874d1db1e9e81.jpg',
-  'https://cdn.jeff1992.com/ai-video/2026/02/11/guiyishijie.jpeg',
-  'https://cdn.jeff1992.com/ai-video/2025/11/17/sfbgl.jpg',
-  'https://cdn.jeff1992.com/ai-video/2025/11/28/eikhpn_1764323292731.png',
-  'https://cdn.jeff1992.com/ai-video/2026/01/31/古董夫君.jpeg',
-  'https://cdn.jeff1992.com/ai-video/2025/12/29/tmp621zf1_1767001537512.jpg',
-  'https://cdn.jeff1992.com/ai-video/2025/09/10/xingty4_0.jpeg',
-  'https://cdn.jeff1992.com/ai-video/2026/02/11/guizheguaitan.jpeg',
-  'https://cdn.jeff1992.com/ai-video/2026/02/11/guiyimori.jpeg',
+const showcaseImageFiles = [
+  '2-开局就是满级仙尊.jpg',
+  '3-咒术反噬我有无限血条.png',
+  '4-末日壁垒.png',
+  '5-狱界锁妖局.png',
+  '7-菜鸟那是你没见过我的机甲.png',
+  '8-开局饕餮血统我吞噬一切.png',
+  '9-我在未世当老板员工全是S级变异体.jpeg',
+  '10-满级大佬的咸鱼日常.jpg',
+  '11-开同被嘲废柴我绑定未来未来传奇系统.jpg',
+  '12-公主殿下您的钞能力已到账.jpeg',
+  '14-骷髅王炸契约校花.png',
+  '15-我靠双宗在末世征服检花.png',
+  '16-大道至简.jpg',
+  '17-神兽遍地.jpg',
+  '18-我掀翻越诡异世界.jpeg',
+  '21-师傅别再给了.jpg',
+  '22-我在末世当老师.png',
+  '23-我的古董大君不可能这么好看.jpeg',
+  '24-我长得太凶吓哭全球诡异.jpg',
+  '25-荒年穿越成农家子我有兑换商城.jpeg',
+  '27-无线返还我买爆了，诡异末日.jpeg',
 ];
+
+const showcaseImages = showcaseImageFiles.map(
+  (fileName) => `/previewImg/${encodeURIComponent(fileName)}`
+);
 
 export default function Home() {
   const navigate = useNavigate();
@@ -54,7 +57,7 @@ export default function Home() {
 
   return (
     <div className="home-container" data-theme={theme}>
-      {/* 主题1：星星 */}
+      {/* 主题1：星空 */}
       {theme === 'theme1' && (
         <div className="home-stars">
           {Array.from({ length: 80 }, (_, i) => (
@@ -99,7 +102,7 @@ export default function Home() {
         <div className="home-hero-overlay" />
         <div className="home-hero-glow" />
         <h1 className="home-hero-title">
-          <span className="home-gradient-text">一站式AI短剧制作中心</span>
+          <span className="home-gradient-text">一站式 AI 短剧制作中心</span>
         </h1>
         <p className="home-hero-subtitle">智能平台高效创作 | 小投入产出大流量</p>
         <Space size="large" style={{ marginTop: 40 }}>
