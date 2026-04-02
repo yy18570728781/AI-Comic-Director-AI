@@ -21,18 +21,32 @@ import {
 const { Text } = Typography;
 const { TextArea } = Input;
 
+/**
+ * 下拉选项的统一结构。
+ * 这里统一成 label / value / title，避免不同页面传不同字段名，增加组件理解成本。
+ */
 export interface ComposerOption {
   label: string;
   value: string | number;
   title?: string;
 }
 
+/**
+ * 开关型配置的统一结构。
+ * 比如“存素材库”“生成音频”这类配置，本质都是布尔值开关，
+ * 统一成一个类型后，后面扩更多开关时就不需要继续加零散 props。
+ */
 export interface ComposerToggleConfig {
   checked: boolean;
   label: string;
   onChange: (checked: boolean) => void;
 }
 
+/**
+ * 控制各个配置区块是否显示。
+ * 这里不是把配置逻辑写死，而是把“显示权”交给页面层，
+ * 这样公共组件既能服务通用场景，也能适配像电商专区这种裁剪版场景。
+ */
 export interface ComposerVisibilityConfig {
   model?: boolean;
   resolution?: boolean;
@@ -47,100 +61,174 @@ export interface ComposerVisibilityConfig {
   currentPoints?: boolean;
 }
 
+/**
+ * 公共底部输入组件的全部受控参数。
+ *
+ * 为什么这里 props 会比较多：
+ * 1. 这个组件明确定位为“展示组件 + 受控组件”，不在内部保存业务状态。
+ * 2. 业务状态全部由页面或 hook 管，组件只负责把当前值渲染出来，并把交互回调抛出去。
+ * 3. 这样虽然参数多一点，但业务边界清晰，不容易把电商专区、图生视频等规则揉进同一个组件内部。
+ */
 export interface GenerationComposerProps {
-  // prompt: 输入框里的文本内容。
+  /**
+   * prompt:
+   * 当前输入框里的主描述文本。
+   */
   prompt: string;
 
-  // onPromptChange: 输入框变化时回调给页面或 hook。
+  /**
+   * onPromptChange:
+   * 文本变化时抛给外层。
+   */
   onPromptChange: (value: string) => void;
 
-  // promptPlaceholder: 输入框占位提示文案。
+  /**
+   * promptPlaceholder:
+   * 输入框占位提示文案。
+   */
   promptPlaceholder?: string;
 
-  // promptMaxLength: 输入框最大字符数。
+  /**
+   * promptMaxLength:
+   * 输入框最大字数限制。
+   */
   promptMaxLength?: number;
 
-  // selectedImages: 当前已选参考图列表。
+  /**
+   * selectedImages:
+   * 当前已经选中的参考图列表。
+   */
   selectedImages: string[];
 
-  // maxImageCount: 当前模型允许的最大参考图数量，仅用于展示提示。
+  /**
+   * maxImageCount:
+   * 当前模式或模型允许的最大参考图数量。
+   * 这里主要用于界面提示，不在公共组件内部做业务校验。
+   */
   maxImageCount: number;
 
-  // onOpenImageSelector: 点击选图入口时调用。
+  /**
+   * onOpenImageSelector:
+   * 点击“添加图片/重新选择”入口时触发。
+   */
   onOpenImageSelector: () => void;
 
-  // onRemoveImage: 删除某一张参考图时调用。
+  /**
+   * onRemoveImage:
+   * 删除指定索引图片时触发。
+   */
   onRemoveImage: (index: number) => void;
 
-  // modelValue / modelOptions / onModelChange:
-  // 模型选择器的受控值、选项和变化回调。
+  /**
+   * modelValue / modelOptions / onModelChange:
+   * 模型选择器的受控值、候选项和变化回调。
+   */
   modelValue?: string;
   modelOptions?: ComposerOption[];
   onModelChange?: (value: string) => void;
   modelPlaceholder?: string;
 
-  // modelFixedLabel:
-  // 如果页面已经固定模型，就不显示下拉框，改成一个只读标签。
+  /**
+   * modelFixedLabel:
+   * 某些页面会把模型固定死，不允许用户切换。
+   * 这时就不显示下拉，而是显示一个只读标签，告诉用户当前用的是哪个模型。
+   */
   modelFixedLabel?: string;
 
-  // resolution 相关。
+  /**
+   * resolution 相关配置。
+   */
   resolutionValue?: string;
   resolutionOptions?: ComposerOption[];
   onResolutionChange?: (value: string) => void;
 
-  // aspectRatio 相关。
+  /**
+   * aspectRatio 相关配置。
+   */
   aspectRatioValue?: string;
   aspectRatioOptions?: ComposerOption[];
   onAspectRatioChange?: (value: string) => void;
 
-  // mode 相关。
+  /**
+   * mode 相关配置。
+   */
   modeValue?: string;
   modeOptions?: ComposerOption[];
   onModeChange?: (value: string) => void;
 
-  // duration 相关。
+  /**
+   * duration 相关配置。
+   */
   durationValue?: number;
   durationOptions?: number[];
   onDurationChange?: (value: number) => void;
 
-  // batchCount 相关。
+  /**
+   * batchCount 相关配置。
+   */
   batchCountValue?: number;
   batchCountMin?: number;
   batchCountMax?: number;
   onBatchCountChange?: (value: number) => void;
 
-  // saveToLibrary / generateAudio:
-  // 这两个开关都走同一套 toggle 配置结构，方便后面继续扩展类似开关。
+  /**
+   * saveToLibrary / generateAudio:
+   * 开关类配置统一走 ToggleConfig，避免 props 风格不一致。
+   */
   saveToLibraryConfig?: ComposerToggleConfig;
   generateAudioConfig?: ComposerToggleConfig;
 
-  // credits: 当前前端预估的积分消耗。
+  /**
+   * credits:
+   * 当前前端估算的积分消耗。
+   */
   credits?: number;
 
-  // currentPoints: 当前用户剩余积分。
+  /**
+   * currentPoints:
+   * 当前用户剩余积分。
+   */
   currentPoints?: number;
 
-  // submitDisabled / submitLoading:
-  // 页面控制提交按钮的禁用态和加载态。
+  /**
+   * submitDisabled / submitLoading:
+   * 提交按钮的禁用态和 loading 态。
+   * 这里继续由页面控制，而不是组件内部根据某些规则自动推断，避免公共组件偷偷带业务判断。
+   */
   submitDisabled?: boolean;
   submitLoading?: boolean;
 
-  // submitText: 当前主操作按钮的语义文案。
+  /**
+   * submitText:
+   * 主按钮的语义说明。
+   * 当前按钮是圆形图标按钮，所以这个文本更多用于 title 和语义提示。
+   */
   submitText?: string;
 
-  // onSubmit: 点击主按钮时触发。
+  /**
+   * onSubmit:
+   * 点击主按钮时触发的提交动作。
+   */
   onSubmit: () => void;
 
-  // extraConfigContent:
-  // 业务专属配置插槽。
-  // 例如：电商专区传 gender，其他专区传风格、人设、镜头语言。
+  /**
+   * extraConfigContent:
+   * 业务专属配置插槽。
+   * 比如电商专区的“男生/女生”，后面别的页面也可以插自己的配置，而不需要继续改公共组件接口。
+   */
   extraConfigContent?: ReactNode;
 
-  // visibility:
-  // 控制哪些常规配置项显示，哪些隐藏。
+  /**
+   * visibility:
+   * 控制默认配置区块的显示与隐藏。
+   */
   visibility?: ComposerVisibilityConfig;
 }
 
+/**
+ * 默认全部显示。
+ * 页面层只需要声明“我要隐藏什么”，不用把每个开关都重复传一遍。
+ */
 const DEFAULT_VISIBILITY: Required<ComposerVisibilityConfig> = {
   model: true,
   resolution: true,
@@ -156,21 +244,21 @@ const DEFAULT_VISIBILITY: Required<ComposerVisibilityConfig> = {
 };
 
 /**
- * `GenerationComposer` 是纯展示型受控组件。
+ * 通用底部输入组件。
  *
- * 它负责：
- * 1. 渲染统一风格的底部输入区。
- * 2. 把用户交互通过回调抛给外部。
+ * 组件职责：
+ * 1. 负责渲染统一风格的底部输入区
+ * 2. 负责承接用户交互并把结果通过回调交还给页面
  *
- * 它不负责：
- * 1. 管理业务状态。
- * 2. 计算模型联动。
- * 3. 发起提交接口。
+ * 组件不负责：
+ * 1. 不保存业务状态
+ * 2. 不发起接口请求
+ * 3. 不做模型联动、积分计算这类业务推导
  *
- * 这样做的好处是：
- * 1. 组件可以跨页面复用。
- * 2. 页面可以自由决定哪些配置项显示 / 隐藏 / 固定。
- * 3. 业务专属字段不会污染公共组件。
+ * 为什么这么设计：
+ * 1. 公共组件越“傻”，复用时越稳定
+ * 2. 页面可以自由决定哪些配置显示、哪些固定
+ * 3. 配合自定义 hook 使用时，可读性比“组件内部全包”更好
  */
 export default function GenerationComposer({
   prompt,
@@ -213,9 +301,11 @@ export default function GenerationComposer({
   extraConfigContent,
   visibility,
 }: GenerationComposerProps) {
-  // visible:
-  // 把页面传入的 visibility 和默认展示配置合并。
-  // 页面只需要关心“我要隐藏什么”，不需要把全部开关都传一遍。
+  /**
+   * visible:
+   * 把页面层传入的裁剪配置和默认显示配置合并。
+   * 这样页面只关心“我要隐藏什么”，不用关心整套默认值。
+   */
   const visible = { ...DEFAULT_VISIBILITY, ...visibility };
 
   return (
@@ -240,8 +330,8 @@ export default function GenerationComposer({
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* 左侧是参考图区域。
-                是否有图、图怎么删、点击后做什么，都由外层控制。 */}
+            {/* 左侧是参考图预览区。
+                是否有图、图怎么删、点按钮后打开什么选择器，全部交给页面控制。 */}
             {selectedImages.length > 0 ? (
               <div
                 style={{
@@ -304,7 +394,7 @@ export default function GenerationComposer({
               </div>
             )}
 
-            {/* 左下角这个按钮是“重新选图 / 添加图片”的统一入口。 */}
+            {/* 这个按钮统一承担“首次添加”和“重新选择”的入口，避免左侧交互分散。 */}
             <Button
               type="text"
               icon={<PlusOutlined />}
@@ -321,7 +411,7 @@ export default function GenerationComposer({
           </div>
 
           <div style={{ display: 'grid', gap: 12 }}>
-            {/* 主输入框只负责编辑 prompt。 */}
+            {/* 主文本输入区只负责展示和回传 prompt，不做业务理解。 */}
             <TextArea
               value={prompt}
               onChange={event => onPromptChange(event.target.value)}
@@ -338,11 +428,8 @@ export default function GenerationComposer({
               }}
             />
 
-            {/* 这一排是“常规配置流”。
-                页面可以：
-                1. 隐藏某个项
-                2. 固定某个项
-                3. 插入自己的专属项 */}
+            {/* 这一排是标准配置流。
+                页面可以隐藏某些配置，也可以插入自己的业务专属配置。 */}
             <div
               style={{
                 display: 'flex',
@@ -353,7 +440,7 @@ export default function GenerationComposer({
             >
               {visible.model &&
                 (modelFixedLabel ? (
-                  // 模型固定时，直接展示只读标签，不再显示下拉框。
+                  // 模型固定时直接显示标签，不允许用户再切换。
                   <Tag
                     icon={<VideoCameraOutlined />}
                     style={{
@@ -449,6 +536,7 @@ export default function GenerationComposer({
                     },
                   }}
                   optionRender={option => {
+                    // 这里用自定义 optionRender，是为了让时长选择更像卡片而不是默认下拉项。
                     const active = Number(option.value) === durationValue;
 
                     return (
@@ -541,7 +629,7 @@ export default function GenerationComposer({
                 </Space>
               )}
 
-              {/* 业务专属配置直接插在配置流里，保持视觉和交互一致。 */}
+              {/* 业务专属配置插到这里，是为了和默认配置保持同一视觉层级。 */}
               {extraConfigContent}
 
               {visible.imageCountTag && (
@@ -580,7 +668,7 @@ export default function GenerationComposer({
               )}
             </div>
 
-            {/* 底部左侧显示状态，右侧保留唯一主提交按钮。 */}
+            {/* 底部左边展示积分信息，右边保留一个唯一主操作按钮。 */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 12, color: '#9aa4b2' }}>
                 {visible.currentPoints ? `当前积分 ${currentPoints ?? 0}` : ''}
