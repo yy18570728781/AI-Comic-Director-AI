@@ -23,6 +23,17 @@ const service = axios.create({
   },
 });
 
+/**
+ * 统一清理前端本地登录态。
+ * 为什么除了 token 还要清掉 user-storage：
+ * 因为项目里把 currentUser 持久化到了 localStorage，
+ * 如果只删 token，不删旧用户资料，页面恢复时仍可能继续拿旧 userId 发请求。
+ */
+const clearLocalAuthState = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user-storage');
+};
+
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
@@ -54,13 +65,15 @@ service.interceptors.response.use(
     if (data && typeof data === 'object' && 'success' in data && data.success === false) {
       const errorMessage = data.message || '操作失败';
 
+      // 兼容后端返回 200 + success:false 的鉴权失败场景。
+      // 只要语义上已经明确是登录态问题，前端就按统一的过期流程处理。
       if (
         (errorMessage.includes('登录') || errorMessage.includes('Token') || errorMessage.includes('认证')) &&
         !errorMessage.includes('微信') &&
         !window.location.pathname.includes('/login')
       ) {
         console.log('[API] 认证失败，跳转到登录页');
-        localStorage.removeItem('token');
+        clearLocalAuthState();
         window.location.href = '/login';
         return Promise.reject(new Error(errorMessage));
       }
@@ -76,15 +89,17 @@ service.interceptors.response.use(
 
     if (error.response?.status === 401) {
       message.error('登录已过期，请重新登录');
-      localStorage.removeItem('token');
+      // 401 说明登录态已经失效，前端应立即清缓存并跳登录页。
+      clearLocalAuthState();
       if (!window.location.pathname.includes('/login')) {
-        console.log('[API] 401错误，跳转到登录页');
+        console.log('[API] 401 错误，跳转到登录页');
         window.location.href = '/login';
       }
       return Promise.reject(error);
     }
 
     if (error.response?.status === 403) {
+      // 403 只保留给“已登录但无权限”的场景，例如普通用户访问管理员接口。
       message.error(error.response?.data?.message || '没有权限访问');
       return Promise.reject(error);
     }
