@@ -145,13 +145,13 @@ export function useVideoComposer({
   useEffect(() => {
     if (modelConfig?.resolutions?.[0]) {
       setResolution(prev =>
-        modelConfig.resolutions?.includes(prev) ? prev : modelConfig.resolutions[0]
+        modelConfig.resolutions ? (modelConfig.resolutions.includes(prev) ? prev : modelConfig.resolutions[0]) : prev
       );
     }
 
     if (modelConfig?.aspectRatios?.[0]) {
       setAspectRatio(prev =>
-        modelConfig.aspectRatios?.includes(prev) ? prev : modelConfig.aspectRatios[0]
+        modelConfig.aspectRatios ? (modelConfig.aspectRatios.includes(prev) ? prev : modelConfig.aspectRatios[0]) : prev
       );
     }
 
