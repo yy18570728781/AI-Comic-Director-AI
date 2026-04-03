@@ -66,19 +66,19 @@ export default function ReferenceImageSelector({
         />
       ),
     },
-    {
-      key: 'project',
-      label: '本项目图像',
-      children: (
-        <ProjectImagesTab
-          projectId={projectId}
-          scriptId={scriptId}
-          maxCount={maxCount}
-          value={selectedImages}
-          onChange={setSelectedImages}
-        />
-      ),
-    },
+    // {
+    //   key: 'project',
+    //   label: '本项目图像',
+    //   children: (
+    //     <ProjectImagesTab
+    //       projectId={projectId}
+    //       scriptId={scriptId}
+    //       maxCount={maxCount}
+    //       value={selectedImages}
+    //       onChange={setSelectedImages}
+    //     />
+    //   ),
+    // },
   ];
 
   return (

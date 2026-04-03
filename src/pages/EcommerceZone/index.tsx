@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Input, InputNumber, Select, Switch, message } from 'antd';
+import { Input, InputNumber, Popover, Select, Switch, message } from 'antd';
 import {
   LinkOutlined,
   PictureOutlined,
   PlusOutlined,
   SearchOutlined,
   SettingOutlined,
+  SlidersOutlined,
   UploadOutlined,
   UserOutlined,
   VideoCameraOutlined,
@@ -21,7 +22,7 @@ import GenerationTimeline, {
 } from '@/components/GenerationTimeline';
 import { storage } from '@/utils';
 import { isModeAvailable } from '@/pages/ImageToVideo/config';
-import './style.css';
+import './style.less';
 
 const { TextArea } = Input;
 
@@ -52,8 +53,6 @@ interface EcommerceVideoRecord extends GeneratedVideo {
   ratio: string;
 }
 
-const DEMO_TEMPLATE_CARDS = ['轻奢穿搭', '护肤种草', '甜美推荐', '潮流开箱'];
-
 function formatCreatedAtLabel(value?: string) {
   if (!value) return '刚刚';
   const date = new Date(value);
@@ -67,8 +66,8 @@ export default function EcommerceZone() {
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectorVisible, setSelectorVisible] = useState(false);
+  const [selectorMode, setSelectorMode] = useState<'character' | 'reference'>('reference');
   const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
-  const [activeRoleTab, setActiveRoleTab] = useState<'character' | 'voice'>('character');
   const [motionPrompt, setMotionPrompt] = useState('');
   const [loadingPlaceholders, setLoadingPlaceholders] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,15 +130,48 @@ export default function EcommerceZone() {
     currentPoints: currentUser?.points ?? 0,
   });
 
-  const { selectedImages, prompt, duration, resolution, aspectRatio, batchCount, selectedMode, saveToLibrary, generateAudio } = fields;
-  const { supportedModes, maxImageCount, durationOptions, modelOptions, resolutionOptions, aspectRatioOptions, modeOptions, totalCredits, hasEnoughPoints } = derived;
-  const { setSelectedImages, setPrompt, setDuration, setResolution, setAspectRatio, setBatchCount, setSelectedMode, setSaveToLibrary, setGenerateAudio, handleModelChange } = actions;
+  const {
+    selectedImages,
+    prompt,
+    duration,
+    resolution,
+    aspectRatio,
+    batchCount,
+    selectedMode,
+    saveToLibrary,
+    generateAudio,
+  } = fields;
+  const {
+    supportedModes,
+    maxImageCount,
+    durationOptions,
+    modelOptions,
+    resolutionOptions,
+    aspectRatioOptions,
+    modeOptions,
+    totalCredits,
+    hasEnoughPoints,
+  } = derived;
+  const {
+    setSelectedImages,
+    setPrompt,
+    setDuration,
+    setResolution,
+    setAspectRatio,
+    setBatchCount,
+    setSelectedMode,
+    setSaveToLibrary,
+    setGenerateAudio,
+    handleModelChange,
+  } = actions;
 
   const currentModelName = useMemo(
     () => modelOptions.find((item) => item.value === videoModel)?.label || videoModel || '视频模型',
     [modelOptions, videoModel]
   );
   const feedVideos = useMemo(() => [...generatedVideos].reverse(), [generatedVideos]);
+  // 关键状态：人物区域当前只展示 1 张图，所以直接取首张作为人物回显图。
+  const characterImage = selectedImages[0];
   const timelineItems = useMemo<GenerationTimelineItem[]>(
     () =>
       generatedVideos.map((item) => ({
@@ -207,88 +239,216 @@ export default function EcommerceZone() {
     message.success('视频已开始下载');
   };
 
+  /**
+   * configPopoverContent:
+   * 详细配置收口到邻近弹窗里，避免左侧主面板被大量表单项挤占空间。
+   */
+  const configPopoverContent = (
+    <div className="ecommerce-zone__config-popover">
+      <div className="ecommerce-zone__config-list">
+        <div className="ecommerce-zone__config-pill">
+          <span>目标人群</span>
+          <Select
+            value={targetGender}
+            onChange={(value) => setTargetGender(value)}
+            options={[
+              { label: '女生', value: 'female' },
+              { label: '男生', value: 'male' },
+            ]}
+            variant="borderless"
+            className="ecommerce-zone__pill-select"
+          />
+        </div>
+        <div className="ecommerce-zone__config-pill">
+          <span>模式</span>
+          <Select
+            value={selectedMode}
+            onChange={(value) => setSelectedMode(String(value))}
+            options={modeOptions}
+            variant="borderless"
+            className="ecommerce-zone__pill-select"
+          />
+        </div>
+        <div className="ecommerce-zone__config-pill">
+          <span>分辨率</span>
+          <Select
+            value={resolution}
+            onChange={(value) => setResolution(String(value))}
+            options={resolutionOptions}
+            variant="borderless"
+            className="ecommerce-zone__pill-select"
+          />
+        </div>
+        <div className="ecommerce-zone__config-pill">
+          <span>比例</span>
+          <Select
+            value={aspectRatio}
+            onChange={(value) => setAspectRatio(String(value))}
+            options={aspectRatioOptions}
+            variant="borderless"
+            className="ecommerce-zone__pill-select"
+          />
+        </div>
+        <div className="ecommerce-zone__config-pill">
+          <span>时长</span>
+          <Select
+            value={duration}
+            onChange={(value) => setDuration(Number(value))}
+            options={durationOptions.map((option) => ({
+              label: `${option}s`,
+              value: option,
+            }))}
+            variant="borderless"
+            className="ecommerce-zone__pill-select"
+          />
+        </div>
+        <div className="ecommerce-zone__config-pill">
+          <span>份数</span>
+          <InputNumber
+            min={1}
+            max={10}
+            value={batchCount}
+            onChange={(value) => setBatchCount(Number(value) || 1)}
+            controls={false}
+            variant="borderless"
+            className="ecommerce-zone__pill-number"
+          />
+        </div>
+        <label className="ecommerce-zone__switch-row">
+          <Switch size="small" checked={saveToLibrary} onChange={setSaveToLibrary} />
+          <span>存素材库</span>
+        </label>
+        <label className="ecommerce-zone__switch-row">
+          <Switch size="small" checked={generateAudio} onChange={setGenerateAudio} />
+          <span>生成音频</span>
+        </label>
+      </div>
+    </div>
+  );
+
   return (
     <div className="ecommerce-zone">
       <div className="ecommerce-zone__frame">
         <aside className="ecommerce-zone__sidebar">
           <div className="ecommerce-zone__sidebar-top">
             <div className="ecommerce-zone__sidebar-title">配音生视频</div>
-            <Select value={videoModel} onChange={(value) => handleModelChange(String(value))} options={modelOptions} variant="borderless" className="ecommerce-zone__model-select" />
+            <Select
+              value={videoModel}
+              onChange={(value) => handleModelChange(String(value))}
+              options={modelOptions}
+              variant="borderless"
+              className="ecommerce-zone__model-select"
+            />
           </div>
 
           <div className="ecommerce-zone__sidebar-card">
             <div className="ecommerce-zone__role-switch">
-              <button type="button" className={`ecommerce-zone__role-button ${activeRoleTab === 'character' ? 'is-active' : ''}`} onClick={() => setActiveRoleTab('character')}>
-                <UserOutlined />
-                <span>人物</span>
-              </button>
-              <button type="button" className={`ecommerce-zone__role-button ${activeRoleTab === 'voice' ? 'is-active' : ''}`} onClick={() => setActiveRoleTab('voice')}>
+              <div
+                role="button"
+                tabIndex={0}
+                className={`ecommerce-zone__role-button ${characterImage ? 'has-image' : ''}`}
+                onClick={() => {
+                  // 关键逻辑：人物入口复用同一套弹窗，但切到单图选择模式。
+                  setSelectorMode('character');
+                  setSelectorVisible(true);
+                }}
+                onKeyDown={(event) => {
+                  // 键盘可达性：按 Enter / Space 时与点击行为保持一致。
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectorMode('character');
+                    setSelectorVisible(true);
+                  }
+                }}
+              >
+                {characterImage ? (
+                  <img
+                    src={characterImage}
+                    alt="人物参考图"
+                    className="ecommerce-zone__role-image"
+                  />
+                ) : (
+                  <>
+                    <UserOutlined />
+                    <span>人物</span>
+                  </>
+                )}
+              </div>
+              <div
+                role="button"
+                tabIndex={0}
+                className={`ecommerce-zone__role-button`}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                  }
+                }}
+              >
                 <VideoCameraOutlined />
                 <span>音色</span>
-              </button>
+              </div>
             </div>
 
             <div className="ecommerce-zone__field-group">
               <label className="ecommerce-zone__field-label">说话内容</label>
-              <TextArea value={prompt} onChange={(event) => setPrompt(event.target.value)} autoSize={{ minRows: 3, maxRows: 5 }} variant="borderless" placeholder="请输入你希望角色说出的活泼点击口播文案" className="ecommerce-zone__textarea" />
+              <TextArea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                autoSize={{ minRows: 3, maxRows: 5 }}
+                variant="borderless"
+                placeholder="请输入你希望角色说出的活泼点击口播文案"
+                className="ecommerce-zone__textarea"
+              />
             </div>
 
             <div className="ecommerce-zone__field-group">
               <label className="ecommerce-zone__field-label">动作描述（可选）</label>
-              <TextArea value={motionPrompt} onChange={(event) => setMotionPrompt(event.target.value)} autoSize={{ minRows: 2, maxRows: 4 }} variant="borderless" placeholder="请描述你想生成的画面和动作" className="ecommerce-zone__textarea" />
+              <TextArea
+                value={motionPrompt}
+                onChange={(event) => setMotionPrompt(event.target.value)}
+                autoSize={{ minRows: 2, maxRows: 4 }}
+                variant="borderless"
+                placeholder="请描述你想生成的画面和动作"
+                className="ecommerce-zone__textarea"
+              />
             </div>
 
             <div className="ecommerce-zone__visual-panel">
-              <div className="ecommerce-zone__visual-grid">
-                <button type="button" className="ecommerce-zone__image-picker" onClick={() => setSelectorVisible(true)}>
-                  <span className="ecommerce-zone__image-picker-icon"><PlusOutlined /></span>
-                  <span>参考图</span>
-                </button>
-                <div className="ecommerce-zone__visual-copy">输入文字，描述你想创作的电商视频内容，比如：一个护肤品瓶身在柔光台面上缓慢旋转，突出通透质感和高级包装。</div>
-              </div>
-
               <div className="ecommerce-zone__preview-strip">
-                <button type="button" className="ecommerce-zone__preview-add" onClick={() => setSelectorVisible(true)}>
-                  <PlusOutlined />
-                  <span>{selectedImages.length ? '重选' : '添加'}</span>
-                </button>
                 <div className="ecommerce-zone__preview-meta">
                   <span>{currentModelName}</span>
                   <span>{resolution}</span>
                   <span>{aspectRatio}</span>
                 </div>
-              </div>
-
-              <div className="ecommerce-zone__config-list">
-                <div className="ecommerce-zone__config-pill"><span>目标人群</span><Select value={targetGender} onChange={(value) => setTargetGender(value)} options={[{ label: '女生', value: 'female' }, { label: '男生', value: 'male' }]} variant="borderless" className="ecommerce-zone__pill-select" /></div>
-                <div className="ecommerce-zone__config-pill"><span>模式</span><Select value={selectedMode} onChange={(value) => setSelectedMode(String(value))} options={modeOptions} variant="borderless" className="ecommerce-zone__pill-select" /></div>
-                <div className="ecommerce-zone__config-pill"><span>分辨率</span><Select value={resolution} onChange={(value) => setResolution(String(value))} options={resolutionOptions} variant="borderless" className="ecommerce-zone__pill-select" /></div>
-                <div className="ecommerce-zone__config-pill"><span>比例</span><Select value={aspectRatio} onChange={(value) => setAspectRatio(String(value))} options={aspectRatioOptions} variant="borderless" className="ecommerce-zone__pill-select" /></div>
-                <div className="ecommerce-zone__config-pill"><span>时长</span><Select value={duration} onChange={(value) => setDuration(Number(value))} options={durationOptions.map((option) => ({ label: `${option}s`, value: option }))} variant="borderless" className="ecommerce-zone__pill-select" /></div>
-                <div className="ecommerce-zone__config-pill"><span>份数</span><InputNumber min={1} max={10} value={batchCount} onChange={(value) => setBatchCount(Number(value) || 1)} controls={false} variant="borderless" className="ecommerce-zone__pill-number" /></div>
-                <label className="ecommerce-zone__switch-row"><Switch size="small" checked={saveToLibrary} onChange={setSaveToLibrary} /><span>存素材库</span></label>
-                <label className="ecommerce-zone__switch-row"><Switch size="small" checked={generateAudio} onChange={setGenerateAudio} /><span>生成音频</span></label>
+                <Popover
+                  trigger="click"
+                  placement="bottomRight"
+                  overlayClassName="ecommerce-zone__config-popover-overlay"
+                  content={configPopoverContent}
+                >
+                  <button type="button" className="ecommerce-zone__config-trigger">
+                    <SlidersOutlined />
+                  </button>
+                </Popover>
               </div>
 
               <div className="ecommerce-zone__status-row">
-                <span><PictureOutlined /> {selectedImages.length}/{maxImageCount} 图</span>
+                <span>
+                  <PictureOutlined /> {selectedImages.length}/{maxImageCount} 图
+                </span>
                 <span>{totalCredits} 积分</span>
               </div>
-              <div className="ecommerce-zone__current-points">当前积分 {currentUser?.points ?? 0}</div>
+              <div className="ecommerce-zone__current-points">
+                当前积分 {currentUser?.points ?? 0}
+              </div>
             </div>
 
-            <div className="ecommerce-zone__template-head"><span>不知道怎么写？试试动作提示词</span><span>隐藏</span></div>
-            <div className="ecommerce-zone__template-list">
-              {DEMO_TEMPLATE_CARDS.map((item) => (
-                <button key={item} type="button" className="ecommerce-zone__template-card" onClick={() => setMotionPrompt(`${item}，镜头平稳推进，人物自然展示商品`)}>
-                  <span className="ecommerce-zone__template-cover" />
-                  <span className="ecommerce-zone__template-name">{item}</span>
-                </button>
-              ))}
-              <button type="button" className="ecommerce-zone__template-more">更多</button>
-            </div>
-
-            <button type="button" className="ecommerce-zone__submit" onClick={handleGenerate} disabled={loading || isSubmitting || !hasEnoughPoints}>
+            <button
+              type="button"
+              className="ecommerce-zone__submit"
+              onClick={handleGenerate}
+              disabled={loading || isSubmitting || !hasEnoughPoints}
+            >
               {isSubmitting ? '生成中...' : '立即生成'}
             </button>
           </div>
@@ -300,18 +460,38 @@ export default function EcommerceZone() {
               <div className="ecommerce-zone__hero-logo">AI</div>
               <div>
                 <div className="ecommerce-zone__hero-title">Hi，欢迎来到AI人物口播生成工具</div>
-                <div className="ecommerce-zone__hero-subtitle">选择合适的生成方式，上传素材即可生成。支持切换不同模型，轻松打造电商短视频。</div>
+                <div className="ecommerce-zone__hero-subtitle">
+                  选择合适的生成方式，上传素材即可生成。支持切换不同模型，轻松打造电商短视频。
+                </div>
               </div>
             </div>
-            <button type="button" className="ecommerce-zone__upload-button"><UploadOutlined /><span>拖拽至此上传</span></button>
+            <button type="button" className="ecommerce-zone__upload-button">
+              <UploadOutlined />
+              <span>拖拽至此上传</span>
+            </button>
             <div className="ecommerce-zone__toolbar-actions">
-              <button type="button" className="ecommerce-zone__toolbar-button"><SettingOutlined /><span>设置</span></button>
-              <button type="button" className="ecommerce-zone__toolbar-button"><LinkOutlined /><span>管理视频原料</span></button>
-              <button type="button" className="ecommerce-zone__toolbar-button"><SearchOutlined /><span>任务搜索</span></button>
+              <button type="button" className="ecommerce-zone__toolbar-button">
+                <SettingOutlined />
+                <span>设置</span>
+              </button>
+              <button type="button" className="ecommerce-zone__toolbar-button">
+                <LinkOutlined />
+                <span>管理视频原料</span>
+              </button>
+              <button type="button" className="ecommerce-zone__toolbar-button">
+                <SearchOutlined />
+                <span>任务搜索</span>
+              </button>
             </div>
           </div>
 
-          <div className="ecommerce-zone__divider-row"><span /><div>{feedVideos[0] ? formatCreatedAtLabel(feedVideos[0].createdAt) : '等待生成第一条视频'}</div><span /></div>
+          <div className="ecommerce-zone__divider-row">
+            <span />
+            <div>
+              {feedVideos[0] ? formatCreatedAtLabel(feedVideos[0].createdAt) : '等待生成第一条视频'}
+            </div>
+            <span />
+          </div>
 
           <div className="ecommerce-zone__feed">
             <div className="ecommerce-zone__timeline-shell">
@@ -328,7 +508,9 @@ export default function EcommerceZone() {
             </div>
           </div>
 
-          <div className="ecommerce-zone__footer-note">内容由AI生成，仅供参考。使用时请严格遵守相关法律规范对内容进行标识，并仅限本平台及关联平台内投放。</div>
+          <div className="ecommerce-zone__footer-note">
+            内容由AI生成，仅供参考。使用时请严格遵守相关法律规范对内容进行标识，并仅限本平台及关联平台内投放。
+          </div>
         </main>
       </div>
 
@@ -336,10 +518,11 @@ export default function EcommerceZone() {
         visible={selectorVisible}
         onCancel={() => setSelectorVisible(false)}
         onConfirm={(images) => {
-          setSelectedImages(images);
+          // 关键逻辑：人物入口只回填 1 张，参考图入口仍可继续扩成多图。
+          setSelectedImages(selectorMode === 'character' ? images.slice(0, 1) : images);
           setSelectorVisible(false);
         }}
-        maxCount={maxImageCount}
+        maxCount={selectorMode === 'character' ? 1 : maxImageCount}
         defaultImages={selectedImages}
       />
     </div>
