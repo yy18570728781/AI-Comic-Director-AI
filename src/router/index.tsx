@@ -13,6 +13,7 @@ import TeamSpace from '@/pages/TeamSpace';
 import ImageToVideo from '@/pages/ImageToVideo';
 import ImageToImage from '@/pages/ImageToImage';
 import CreationStudio from '@/pages/CreationStudio';
+import EcommerceZone from '@/pages/EcommerceZone';
 import Recharge from '@/pages/Recharge';
 import Pay from '@/pages/Pay';
 import { getAdminRoutes } from './adminRoutes';
@@ -42,6 +43,7 @@ export default function AppRouter() {
         <Route path="image-to-video" element={<ImageToVideo />} />
         <Route path="image-to-image" element={<ImageToImage />} />
         <Route path="creation-studio" element={<CreationStudio />} />
+        <Route path="ecommerce-zone" element={<EcommerceZone />} />
         <Route path="character-library" element={<CharacterLibrary />} />
         <Route path="character-library/script/:scriptId" element={<ScriptCharacters />} />
         <Route path="team-space" element={<TeamSpace />} />
