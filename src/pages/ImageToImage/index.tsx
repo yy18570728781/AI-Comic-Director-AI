@@ -123,6 +123,22 @@ function ImageToImage() {
   // 获取当前选中的模型配置
   const currentModel = models.find((m) => m.id === imageModel) as ModelConfig | undefined;
   const modelConfig = currentModel?.config;
+  // 关键逻辑：画面比例优先读取模型配置，只有模型未配置时才回退到通用默认值。
+  const supportedAspectRatios =
+    modelConfig?.aspectRatios && modelConfig.aspectRatios.length > 0
+      ? modelConfig.aspectRatios
+      : ['1:1', '16:9', '9:16', '3:4', '4:3'];
+
+  // 关键逻辑：比例文案统一在前端做一层映射，既保留快速选择体验，也能严格受模型配置约束。
+  const aspectRatioLabelMap: Record<string, string> = {
+    '1:1': '1:1（正方形）',
+    '16:9': '16:9（横屏）',
+    '9:16': '9:16（竖屏）',
+    '3:4': '3:4（标准竖屏）',
+    '4:3': '4:3（标准横屏）',
+    '3:2': '3:2',
+    '2:3': '2:3',
+  };
 
   // 计算当前积分消费
   const creditsPerImage = currentModel?.pricing?.image?.creditsPerImage ?? 5; // 默认5积分
@@ -325,41 +341,16 @@ function ImageToImage() {
                 <div>
                   <div style={{ marginBottom: 12, fontWeight: 500 }}>画面比例</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Tag
-                      color={aspectRatio === '1:1' ? 'blue' : 'default'}
-                      onClick={() => setAspectRatio('1:1')}
-                      style={{ cursor: 'pointer', padding: '4px 12px' }}
-                    >
-                      1:1（正方形）
-                    </Tag>
-                    <Tag
-                      color={aspectRatio === '16:9' ? 'blue' : 'default'}
-                      onClick={() => setAspectRatio('16:9')}
-                      style={{ cursor: 'pointer', padding: '4px 12px' }}
-                    >
-                      16:9（横屏）
-                    </Tag>
-                    <Tag
-                      color={aspectRatio === '9:16' ? 'blue' : 'default'}
-                      onClick={() => setAspectRatio('9:16')}
-                      style={{ cursor: 'pointer', padding: '4px 12px' }}
-                    >
-                      9:16（竖屏）
-                    </Tag>
-                    <Tag
-                      color={aspectRatio === '3:4' ? 'blue' : 'default'}
-                      onClick={() => setAspectRatio('3:4')}
-                      style={{ cursor: 'pointer', padding: '4px 12px' }}
-                    >
-                      3:4（标准竖屏）
-                    </Tag>
-                    <Tag
-                      color={aspectRatio === '4:3' ? 'blue' : 'default'}
-                      onClick={() => setAspectRatio('4:3')}
-                      style={{ cursor: 'pointer', padding: '4px 12px' }}
-                    >
-                      4:3（标准横屏）
-                    </Tag>
+                    {supportedAspectRatios.map((ratio) => (
+                      <Tag
+                        key={ratio}
+                        color={aspectRatio === ratio ? 'blue' : 'default'}
+                        onClick={() => setAspectRatio(ratio)}
+                        style={{ cursor: 'pointer', padding: '4px 12px' }}
+                      >
+                        {aspectRatioLabelMap[ratio] || ratio}
+                      </Tag>
+                    ))}
                   </div>
                 </div>
 
