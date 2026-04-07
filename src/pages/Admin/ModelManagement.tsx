@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   Table,
   Button,
@@ -13,7 +13,7 @@ import {
   Switch,
   Divider,
   Card,
-  Tabs,
+  Steps,
 } from 'antd';
 import {
   SearchOutlined,
@@ -35,7 +35,6 @@ import type { ColumnsType } from 'antd/es/table';
 import type { AiModel, Platform, CreateModelRequest, ModelConfig, PricingTier } from '@/api/model';
 
 const { TextArea } = Input;
-const { TabPane } = Tabs;
 
 // Admin 接口里的价格字段有时会以字符串形式返回，展示前统一转成 number。
 function toSafeNumber(value: unknown): number | null {
@@ -65,6 +64,7 @@ export default function ModelManagement() {
   const [modalLoading, setModalLoading] = useState(false);
   const [editingModel, setEditingModel] = useState<AiModel | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
 
   const fetchPlatforms = async () => {
@@ -112,11 +112,24 @@ export default function ModelManagement() {
 
   const handleCreate = () => {
     setEditingModel(null);
+    // 关键逻辑：新建时先回到第一步，并给默认类型，避免依赖 type 的后续步骤出现空白。
+    setCurrentStep(0);
     form.resetFields();
+    form.setFieldsValue({
+      enabled: true,
+      priority: 0,
+      type: 'image',
+      config: {},
+      pricing: {
+        billingMode: 'per_second',
+      },
+    });
     setModalVisible(true);
   };
 
   const handleEdit = (record: AiModel) => {
+    // 关键逻辑：编辑时也从第一步开始，避免弹窗复用后停留在旧步骤。
+    setCurrentStep(0);
     setEditingModel(record);
     const pricing = (record as any).pricing || undefined;
     const billingMode = pricing?.billingMode || 'per_second';
@@ -143,7 +156,10 @@ export default function ModelManagement() {
 
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields();
+      await form.validateFields();
+      // 关键逻辑：步骤表单会按步骤卸载节点，这里改为从表单仓库读取完整值，
+      // 避免 validateFields 的返回结果只包含当前步骤字段，导致提交时基础信息丢失。
+      const values = form.getFieldsValue(true);
       setModalLoading(true);
 
       const modelData: CreateModelRequest = {
@@ -194,6 +210,7 @@ export default function ModelManagement() {
       if (response.success) {
         message.success(editingModel ? '更新成功' : '创建成功');
         setModalVisible(false);
+        setCurrentStep(0);
         form.resetFields();
         fetchModels();
       } else {
@@ -393,7 +410,33 @@ export default function ModelManagement() {
     },
   ];
 
-  const modelType = Form.useWatch('type', form);
+  // 关键逻辑：步骤表单切换时前一步字段会暂时卸载，这里必须按 preserve 模式监听，
+  // 否则后续步骤拿不到 type，导致“定价配置 / 功能配置”整块空白。
+  const modelType = Form.useWatch('type', {
+    form,
+    preserve: true,
+  });
+  const steps = [{ title: '基本信息' }, { title: '定价配置' }, { title: '功能配置' }];
+
+  /**
+   * 下一步。
+   * 关键逻辑：第一步先校验基础字段，确保后续步骤依赖的类型和平台已经确定。
+   */
+  const handleNextStep = async () => {
+    if (currentStep === 0) {
+      await form.validateFields(['id', 'name', 'type', 'platform']);
+    }
+
+    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+  };
+
+  /**
+   * 上一步。
+   * 关键逻辑：复用同一个表单实例，切换步骤时保留已填写的值。
+   */
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -488,17 +531,66 @@ export default function ModelManagement() {
       <Modal
         title={editingModel ? '编辑模型' : '新建模型'}
         open={modalVisible}
-        onOk={handleSubmit}
         onCancel={() => {
           setModalVisible(false);
+          setCurrentStep(0);
           form.resetFields();
         }}
-        confirmLoading={modalLoading}
         width={800}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setModalVisible(false);
+              setCurrentStep(0);
+              form.resetFields();
+            }}
+          >
+            {'\u53d6\u6d88'}
+          </Button>,
+          currentStep > 0 ? (
+            <Button key="prev" onClick={handlePrevStep}>
+              {'上一步'}
+            </Button>
+          ) : null,
+          currentStep < steps.length - 1 ? (
+            <Button key="next" type="primary" onClick={handleNextStep}>
+              {'下一步'}
+            </Button>
+          ) : (
+            <Button key="submit" type="primary" loading={modalLoading} onClick={handleSubmit}>
+              {'确认'}
+            </Button>
+          ),
+        ]}
       >
-        <Form form={form} layout="vertical">
-          <Tabs defaultActiveKey="basic">
-            <TabPane tab="基本信息" key="basic">
+        <Form
+          form={form}
+          layout="vertical"
+          preserve
+          initialValues={{
+            enabled: true,
+            priority: 0,
+            type: 'image',
+            config: {},
+            pricing: {
+              billingMode: 'per_second',
+            },
+          }}
+        >
+          <Steps
+            current={currentStep}
+            items={steps}
+            style={{ marginBottom: 24 }}
+            onChange={(nextStep) => {
+              // 关键逻辑：允许回退查看前面的内容，前进仍通过“下一步”统一控制校验。
+              if (nextStep <= currentStep) {
+                setCurrentStep(nextStep);
+              }
+            }}
+          />
+          {currentStep === 0 && (
+            <>
               <Form.Item
                 label="模型ID"
                 name="id"
@@ -561,9 +653,11 @@ export default function ModelManagement() {
               >
                 <Input placeholder="请输入接口后缀路径，可选" />
               </Form.Item>
-            </TabPane>
+            </>
+          )}
 
-            <TabPane tab="定价配置" key="pricing">
+          {currentStep === 1 && (
+            <>
               {modelType === 'image' && (
                 <>
                   <Form.Item
@@ -610,13 +704,15 @@ export default function ModelManagement() {
                   <VideoPricingForm />
                 </>
               )}
-            </TabPane>
+            </>
+          )}
 
-            <TabPane tab="功能配置" key="config">
+          {currentStep === 2 && (
+            <>
               {modelType === 'image' && <ImageConfigForm />}
               {modelType === 'video' && <VideoConfigForm />}
-            </TabPane>
-          </Tabs>
+            </>
+          )}
         </Form>
       </Modal>
     </div>
@@ -724,7 +820,11 @@ function VideoConfigForm() {
 // 视频定价表单组件
 function VideoPricingForm() {
   const form = Form.useFormInstance();
-  const billingMode = Form.useWatch(['pricing', 'billingMode'], form);
+  // 关键逻辑：计费方式也可能来自上一步或条件渲染切换，这里同样按 preserve 模式监听。
+  const billingMode = Form.useWatch(['pricing', 'billingMode'], {
+    form,
+    preserve: true,
+  });
   const [calcVisible, setCalcVisible] = useState(false);
   const [calcTokens, setCalcTokens] = useState<number>();
   const [calcTokenPrice, setCalcTokenPrice] = useState<number>();

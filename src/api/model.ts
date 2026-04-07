@@ -17,7 +17,6 @@ export interface ModelConfig {
   supportSeed?: boolean;
   supportNegativePrompt?: boolean;
   /** 模型级接口路径，用于覆盖平台默认端点 */
-  apiPath?: string;
 
   // 视频模型配置
   supportedModes?: string[];
@@ -67,6 +66,8 @@ export interface AiModel {
   platform: 'tongyi' | 'volcengine' | 'toapis' | 'openai' | 'millionengine';
   enabled: boolean;
   priority: number;
+  /** 模型级接口后缀路径，属于基础信息 */
+  apiPath?: string;
   pricing?: AiModelPricing;
   config: ModelConfig;
   createdAt: string;
@@ -97,6 +98,7 @@ export interface CreateModelRequest {
   platform: 'tongyi' | 'volcengine' | 'toapis' | 'openai' | 'millionengine';
   enabled?: boolean;
   priority?: number;
+  apiPath?: string;
   pricing?: AiModelPricing;
   config: ModelConfig;
 }
@@ -106,6 +108,7 @@ export interface UpdateModelRequest {
   description?: string;
   enabled?: boolean;
   priority?: number;
+  apiPath?: string;
   pricing?: AiModelPricing;
   config?: ModelConfig;
 }
