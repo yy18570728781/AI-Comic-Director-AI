@@ -1,52 +1,63 @@
 import { Modal, Tabs } from 'antd';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+import AIComposeTab from './AIComposeTab';
 import CustomUploadTab from './CustomUploadTab';
-import ProjectImagesTab from './ProjectImagesTab';
 import ResourceLibraryTab from './ResourceLibraryTab';
+import './style.less';
 
 interface ReferenceImageSelectorProps {
   visible: boolean;
   onCancel: () => void;
   onConfirm: (images: string[]) => void;
-  maxCount?: number; // 最多选择几张，默认 3
-  projectId?: number; // 当前项目ID（用于"本项目图像"）
-  scriptId?: number; // 当前剧本ID（用于筛选资源库）
-  defaultImages?: string[]; // 默认选中的图片
+  maxCount?: number;
+  projectId?: number;
+  scriptId?: number;
+  defaultImages?: string[];
 }
 
 /**
  * 参考图选择器
- * 支持三种方式选择参考图：
- * 1. 本项目图像 - 从当前项目已生成的图像中选择
- * 2. 资源库 - 从角色库/场景库/道具库中选择
- * 3. 自定义上传 - 直接上传新图片
+ * 支持 AI 合成、自定义上传、资源库三种来源。
  */
 export default function ReferenceImageSelector({
   visible,
   onCancel,
   onConfirm,
   maxCount = 3,
-  projectId,
   scriptId,
   defaultImages = [],
 }: ReferenceImageSelectorProps) {
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState('ai-compose');
+
+  /**
+   * 弹窗内统一的最终选中结果，所有 tab 都往这里回填。
+   */
   const [selectedImages, setSelectedImages] = useState<string[]>(defaultImages);
 
-  // 当弹窗打开时，重置选中的图片
   useEffect(() => {
     if (visible) {
       setSelectedImages(defaultImages);
     }
-  }, [visible, defaultImages]);
+  }, [defaultImages, visible]);
 
-  // 确认选择
   const handleConfirm = () => {
     onConfirm(selectedImages);
   };
 
-  // 标签页配置
   const tabItems = [
+    {
+      key: 'ai-compose',
+      label: 'AI合成',
+      children: (
+        <AIComposeTab
+          scriptId={scriptId}
+          maxCount={maxCount}
+          value={selectedImages}
+          onChange={setSelectedImages}
+        />
+      ),
+    },
     {
       key: 'upload',
       label: '自定义上传',
@@ -66,19 +77,6 @@ export default function ReferenceImageSelector({
         />
       ),
     },
-    // {
-    //   key: 'project',
-    //   label: '本项目图像',
-    //   children: (
-    //     <ProjectImagesTab
-    //       projectId={projectId}
-    //       scriptId={scriptId}
-    //       maxCount={maxCount}
-    //       value={selectedImages}
-    //       onChange={setSelectedImages}
-    //     />
-    //   ),
-    // },
   ];
 
   return (
@@ -100,21 +98,14 @@ export default function ReferenceImageSelector({
         },
       }}
     >
-      <div style={{ color: '#666', marginBottom: 16, fontSize: 12 }}>
-        从项目图像、资源库或上传自定义图片
+      <div className="reference-image-selector__helper-text">
+        从 AI 合成、资源库或上传图片中选择参考图
       </div>
 
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 
-      <div
-        style={{
-          marginTop: 16,
-          padding: '12px 16px',
-          background: '#f5f5f5',
-          borderRadius: 4,
-        }}
-      >
-        <div style={{ fontSize: 12, color: '#666' }}>
+      <div className="reference-image-selector__summary">
+        <div className="reference-image-selector__summary-text">
           已选择 <strong>{selectedImages.length}</strong> / {maxCount} 张参考图
         </div>
       </div>
