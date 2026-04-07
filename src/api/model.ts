@@ -16,6 +16,8 @@ export interface ModelConfig {
   supportMultiImageFusion?: boolean;
   supportSeed?: boolean;
   supportNegativePrompt?: boolean;
+  /** 模型级接口路径，用于覆盖平台默认端点 */
+  apiPath?: string;
 
   // 视频模型配置
   supportedModes?: string[];

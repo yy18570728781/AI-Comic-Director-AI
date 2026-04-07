@@ -553,6 +553,14 @@ export default function ModelManagement() {
               <Form.Item label="优先级" name="priority" initialValue={0}>
                 <InputNumber placeholder="数值越大优先级越高" style={{ width: '100%' }} />
               </Form.Item>
+
+              <Form.Item
+                label="后缀路径"
+                name={['config', 'apiPath']}
+                extra="用于模型级接口后缀覆盖，例如 /v1beta/models/xxx:generateContent"
+              >
+                <Input placeholder="请输入接口后缀路径，可选" />
+              </Form.Item>
             </TabPane>
 
             <TabPane tab="定价配置" key="pricing">
