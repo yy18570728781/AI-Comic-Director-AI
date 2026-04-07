@@ -454,6 +454,47 @@ export function getQueueStats(queueName?: 'image' | 'video' | 'storyboard') {
   });
 }
 
+export interface UnifiedTaskStatusItem {
+  jobId: string | number;
+  type: 'image' | 'video';
+  state: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed' | 'not_found';
+  progress?: number;
+  failedReason?: string;
+  videoId?: number;
+  taskTable?: 'image_tasks' | 'shot_videos';
+  /**
+   * 任务表详情。
+   * 关键逻辑：前端展示任务详情时优先读这里，不再需要分别请求图片表和视频表。
+   */
+  taskDetail?: {
+    id: number;
+    taskId?: string;
+    model?: string;
+    prompt?: string;
+    shotId?: number;
+    scriptId?: number;
+    characterId?: number;
+    userId?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+  requestSnapshot?: Record<string, any>;
+  resultSnapshot?: Record<string, any>;
+  result?: {
+    taskId?: string;
+    savedImage?: {
+      id?: number;
+      url?: string;
+      shotId?: number;
+    };
+    savedVideo?: {
+      id?: number;
+      url?: string;
+      shotId?: number;
+    };
+  };
+}
+
 /**
  * 统一批量查询所有类型任务状态
  *
@@ -463,6 +504,7 @@ export function batchGetAllTaskStatus(data: {
   tasks: Array<{
     jobId: string | number;
     type: 'image' | 'video';
+    videoId?: number;
   }>;
 }) {
   return request({

@@ -73,6 +73,7 @@ export default function SiderLayout() {
             { key: '/admin/users', icon: <UserOutlined />, label: '用户管理' },
             { key: '/admin/point-records', icon: <WalletOutlined />, label: '积分记录' },
             { key: '/admin/models', icon: <DatabaseOutlined />, label: '模型管理' },
+            { key: '/admin/tasks', icon: <DatabaseOutlined />, label: '任务记录' },
           ],
         },
       ]
