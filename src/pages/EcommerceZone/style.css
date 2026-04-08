@@ -101,24 +101,101 @@
 .ecommerce-zone__field-group {
   margin-top: 10px;
 }
-.ecommerce-zone__field-label {
-  display: block;
+.ecommerce-zone__field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 6px;
+}
+.ecommerce-zone__field-label {
   font-size: 13px;
   font-weight: 600;
   color: #b9b0c9;
 }
+.ecommerce-zone__magic-button {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(164, 154, 184, 0.22);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #f3ecff;
+  background: linear-gradient(90deg, rgba(119, 8, 245, 0.92), rgba(213, 50, 242, 0.92));
+  cursor: pointer;
+}
+.ecommerce-zone__magic-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ecommerce-zone__platform-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ecommerce-zone__platform-tag {
+  margin-inline-end: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #cfc5e3;
+  background: #241d2d;
+  cursor: pointer;
+}
+.ecommerce-zone__platform-tag.is-active {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(119, 8, 245, 0.28), rgba(213, 50, 242, 0.24));
+}
 .ecommerce-zone__textarea {
-  padding: 0 !important;
-  color: #ddd5ec !important;
-  background: transparent !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 14px !important;
+  color: #eee8fb !important;
+  background: rgba(255, 255, 255, 0.04) !important;
 }
 .ecommerce-zone__textarea textarea {
-  color: #ddd5ec !important;
+  color: #f4efff !important;
   background: transparent !important;
 }
 .ecommerce-zone__textarea textarea::placeholder {
-  color: #6f6682 !important;
+  color: rgba(244, 239, 255, 0.68) !important;
+}
+.ecommerce-zone__batch-input {
+  width: 100%;
+}
+.ecommerce-zone__batch-input.ant-input-number {
+  width: 100%;
+  height: 46px;
+  padding-inline: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  background: #f3f4f8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.ecommerce-zone__batch-input .ant-input-number-input {
+  height: 44px;
+  color: #2d2737;
+  font-size: 15px;
+  text-align: center;
+}
+.ecommerce-zone__batch-input .ant-input-number-input-wrap {
+  height: 100%;
+}
+.ecommerce-zone__batch-input .ant-input-number-handler-wrap {
+  opacity: 1;
+  width: 34px;
+  border-inline-start: none;
+  background: transparent;
+}
+.ecommerce-zone__batch-input .ant-input-number-handler {
+  border: none;
+  color: #5a5169;
+  background: transparent;
+}
+.ecommerce-zone__batch-input .ant-input-number-handler-up {
+  border-bottom: 1px solid rgba(90, 81, 105, 0.12);
+}
+.ecommerce-zone__batch-input.ant-input-number-focused {
+  border-color: rgba(213, 50, 242, 0.35);
+  box-shadow: 0 0 0 2px rgba(213, 50, 242, 0.08);
 }
 .ecommerce-zone__visual-panel {
   margin-top: 12px;
@@ -253,7 +330,7 @@
   font-size: 13px;
 }
 .ecommerce-zone__submit {
-  margin-top: auto;
+  margin-top: 14px;
   height: 44px;
   border: none;
   border-radius: 12px;

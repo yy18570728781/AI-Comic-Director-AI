@@ -94,7 +94,7 @@ export function useVideoComposer({
   const [duration, setDuration] = useState<number>(5);
   const [resolution, setResolution] = useState('720p');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [batchCount, setBatchCount] = useState<number>(1);
+  const [batchCount, setBatchCount] = useState<number>(5);
   const [selectedMode, setSelectedMode] = useState<string>('ref2v');
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [generateAudio, setGenerateAudio] = useState(false);

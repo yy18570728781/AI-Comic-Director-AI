@@ -326,6 +326,22 @@ export function getModels() {
   });
 }
 
+/**
+ * 根据图片智能生成电商视频提示词
+ */
+export function generateEcommerceVideoPrompt(data: {
+  imageUrls: string[];
+  model?: string;
+  extraInput?: string;
+  publishPlatform?: string;
+}) {
+  return request({
+    url: '/api/ai/prompt/ecommerce-video-prompt',
+    method: 'post',
+    data,
+  });
+}
+
 export function generateImageAsync(data: {
   prompt: string;
   model?: string;

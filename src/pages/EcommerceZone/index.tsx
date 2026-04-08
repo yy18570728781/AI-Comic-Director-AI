@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Input, InputNumber, Popover, Select, Switch, message } from 'antd';
+import { Input, InputNumber, Popover, Select, Switch, Tag, message } from 'antd';
 import {
   LinkOutlined,
   PictureOutlined,
-  PlusOutlined,
   SearchOutlined,
   SettingOutlined,
   SlidersOutlined,
-  UploadOutlined,
   UserOutlined,
-  VideoCameraOutlined,
 } from '@ant-design/icons';
+import { generateEcommerceVideoPrompt } from '@/api/ai';
 import { useModelStore } from '@/stores/useModelStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
@@ -25,6 +23,8 @@ import { isModeAvailable } from '@/pages/ImageToVideo/config';
 import './style.less';
 
 const { TextArea } = Input;
+
+const PUBLISH_PLATFORM_OPTIONS = ['抖音', '快手', '视频号', '小红书'];
 
 interface ModelConfig {
   id: string;
@@ -61,14 +61,17 @@ function formatCreatedAtLabel(value?: string) {
 }
 
 export default function EcommerceZone() {
-  const { videoModel, setVideoModel, videoModels, loadModels } = useModelStore();
+  const { videoModel, textModel, setVideoModel, videoModels, loadModels } = useModelStore();
   const { currentUser, refreshPoints } = useUserStore();
+
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [selectorMode, setSelectorMode] = useState<'character' | 'reference'>('reference');
   const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
+  const [publishPlatform, setPublishPlatform] = useState('抖音');
   const [motionPrompt, setMotionPrompt] = useState('');
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [loadingPlaceholders, setLoadingPlaceholders] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<EcommerceVideoRecord[]>(
@@ -78,7 +81,7 @@ export default function EcommerceZone() {
   const { generateVideo } = useAIGeneration({
     onVideoComplete: (video) => {
       const currentModel = models.find((item) => item.id === videoModel);
-      // 关键逻辑：把页面里的两个描述输入框合并后固化到历史记录里，避免回显依赖当前表单状态。
+      // 关键逻辑：生成历史里保存最终提交的完整视频提示词，避免回显时依赖当前表单状态。
       const finalPrompt = [prompt.trim(), motionPrompt.trim()].filter(Boolean).join('；');
       const nextRecord: EcommerceVideoRecord = {
         ...video,
@@ -170,15 +173,16 @@ export default function EcommerceZone() {
     [modelOptions, videoModel]
   );
   const feedVideos = useMemo(() => [...generatedVideos].reverse(), [generatedVideos]);
-  // 关键状态：人物区域当前只展示 1 张图，所以直接取首张作为人物回显图。
+  // 关键状态：当前人物区域只回显第一张参考图。
   const characterImage = selectedImages[0];
+
   const timelineItems = useMemo<GenerationTimelineItem[]>(
     () =>
       generatedVideos.map((item) => ({
         id: item.id,
         type: GenerationTimelineItemType.VIDEO,
         createdAt: item.createdAt,
-        requestText: item.prompt || '生成一段电商内容',
+        requestText: item.prompt || '生成一段电商视频内容',
         description: item.prompt || '未记录描述',
         statusText: '创意已完成',
         url: item.url,
@@ -191,16 +195,63 @@ export default function EcommerceZone() {
     [generatedVideos]
   );
 
+  /**
+   * 智能生成视频提示词
+   *
+   * 关键逻辑：
+   * 1. 把参考图和发布平台一起交给后端视觉模型。
+   * 2. 用户当前已输入的内容作为补充要求继续透传，避免结果偏离方向。
+   * 3. 这里只回填主提示词输入框，不覆盖动作描述。
+   */
+  const handleSmartGeneratePrompt = async () => {
+    /**
+     * 关键校验：
+     * 智能生成依赖人物参考图来提取人物形象和带货场景信息，
+     * 所以这里必须先检查人物位是否已有图片。
+     */
+    if (!characterImage) {
+      message.warning('请先上传参考图才能智能生成视频提示词');
+      return;
+    }
+
+    if (isGeneratingPrompt) {
+      message.warning('智能生成中，请稍候');
+      return;
+    }
+
+    setIsGeneratingPrompt(true);
+    try {
+      const result = await generateEcommerceVideoPrompt({
+        imageUrls: [characterImage],
+        model: textModel,
+        extraInput: prompt.trim(),
+        publishPlatform,
+      });
+
+      if (result?.success && result.data?.prompt) {
+        setPrompt(String(result.data.prompt).trim());
+        message.success('视频提示词已生成');
+        return;
+      }
+
+      message.error(result?.message || '智能生成失败');
+    } catch (error: any) {
+      message.error(error.message || '智能生成失败');
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!selectedImages.length) return message.warning('请先选择商品参考图');
-    if (!prompt.trim()) return message.warning('请先填写说话内容');
+    if (!prompt.trim()) return message.warning('请先填写视频提示词');
     if (isSubmitting) return message.warning('任务提交中，请稍候');
     if (!isModeAvailable(selectedMode, selectedImages.length, supportedModes)) {
       return message.error('当前模式和参考图数量不匹配');
     }
     if (!hasEnoughPoints) return message.warning('积分不足，暂时无法生成');
 
-    // 关键逻辑：新模块自己的“说话内容 + 动作描述”在提交前统一拼成最终 prompt。
+    // 关键逻辑：视频生成时把主提示词和动作描述拼成最终提交 prompt。
     const finalPrompt = [prompt.trim(), motionPrompt.trim()].filter(Boolean).join('；');
     setIsSubmitting(true);
     try {
@@ -219,8 +270,18 @@ export default function EcommerceZone() {
           ...(saveToLibrary
             ? {
                 saveToLibrary: true,
-                libraryName: `电商视频_${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
-                libraryTags: ['电商专区', '视频生成', targetGender === 'female' ? '女生' : '男生'],
+                libraryName: `电商视频_${new Date().toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}`,
+                libraryTags: [
+                  '电商专区',
+                  '视频生成',
+                  targetGender === 'female' ? '女生' : '男生',
+                  publishPlatform,
+                ],
               }
             : {}),
         });
@@ -240,26 +301,9 @@ export default function EcommerceZone() {
     message.success('视频已开始下载');
   };
 
-  /**
-   * configPopoverContent:
-   * 详细配置收口到邻近弹窗里，避免左侧主面板被大量表单项挤占空间。
-   */
   const configPopoverContent = (
     <div className="ecommerce-zone__config-popover">
       <div className="ecommerce-zone__config-list">
-        <div className="ecommerce-zone__config-pill">
-          <span>目标人群</span>
-          <Select
-            value={targetGender}
-            onChange={(value) => setTargetGender(value)}
-            options={[
-              { label: '女生', value: 'female' },
-              { label: '男生', value: 'male' },
-            ]}
-            variant="borderless"
-            className="ecommerce-zone__pill-select"
-          />
-        </div>
         <div className="ecommerce-zone__config-pill">
           <span>模式</span>
           <Select
@@ -303,18 +347,6 @@ export default function EcommerceZone() {
             className="ecommerce-zone__pill-select"
           />
         </div>
-        <div className="ecommerce-zone__config-pill">
-          <span>份数</span>
-          <InputNumber
-            min={1}
-            max={10}
-            value={batchCount}
-            onChange={(value) => setBatchCount(Number(value) || 1)}
-            controls={false}
-            variant="borderless"
-            className="ecommerce-zone__pill-number"
-          />
-        </div>
         <label className="ecommerce-zone__switch-row">
           <Switch size="small" checked={saveToLibrary} onChange={setSaveToLibrary} />
           <span>存素材库</span>
@@ -332,7 +364,7 @@ export default function EcommerceZone() {
       <div className="ecommerce-zone__frame">
         <aside className="ecommerce-zone__sidebar">
           <div className="ecommerce-zone__sidebar-top">
-            <div className="ecommerce-zone__sidebar-title">配音生视频</div>
+            <div className="ecommerce-zone__sidebar-title">AI数字视频</div>
             <Select
               value={videoModel}
               onChange={(value) => handleModelChange(String(value))}
@@ -349,12 +381,10 @@ export default function EcommerceZone() {
                 tabIndex={0}
                 className={`ecommerce-zone__role-button ${characterImage ? 'has-image' : ''}`}
                 onClick={() => {
-                  // 关键逻辑：人物入口复用同一套弹窗，但切到单图选择模式。
                   setSelectorMode('character');
                   setSelectorVisible(true);
                 }}
                 onKeyDown={(event) => {
-                  // 键盘可达性：按 Enter / Space 时与点击行为保持一致。
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     setSelectorMode('character');
@@ -371,35 +401,50 @@ export default function EcommerceZone() {
                 ) : (
                   <>
                     <UserOutlined />
-                    <span>人物</span>
+                    <span>参考图</span>
                   </>
                 )}
-              </div>
-              <div
-                role="button"
-                tabIndex={0}
-                className={`ecommerce-zone__role-button`}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <VideoCameraOutlined />
-                <span>音色</span>
               </div>
             </div>
 
             <div className="ecommerce-zone__field-group">
-              <label className="ecommerce-zone__field-label">说话内容</label>
+              <div className="ecommerce-zone__field-header">
+                <label className="ecommerce-zone__field-label">视频提示词</label>
+                <button
+                  type="button"
+                  className="ecommerce-zone__magic-button"
+                  onClick={handleSmartGeneratePrompt}
+                  disabled={isGeneratingPrompt}
+                >
+                  {isGeneratingPrompt ? '生成中...' : '智能生成'}
+                </button>
+              </div>
               <TextArea
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 autoSize={{ minRows: 3, maxRows: 5 }}
                 variant="borderless"
-                placeholder="请输入你希望角色说出的活泼点击口播文案"
+                placeholder="输入视频提示词，例如亚洲美女带货洗衣粉，动态自由分镜，镜头推进展示商品细节"
                 className="ecommerce-zone__textarea"
               />
+            </div>
+
+            <div className="ecommerce-zone__field-group">
+              <label className="ecommerce-zone__field-label">发布平台</label>
+              <div className="ecommerce-zone__platform-tags">
+                {PUBLISH_PLATFORM_OPTIONS.map((item) => (
+                  <Tag
+                    key={item}
+                    className={`ecommerce-zone__platform-tag ${
+                      publishPlatform === item ? 'is-active' : ''
+                    }`}
+                    bordered={false}
+                    onClick={() => setPublishPlatform(item)}
+                  >
+                    {item}
+                  </Tag>
+                ))}
+              </div>
             </div>
 
             <div className="ecommerce-zone__field-group">
@@ -409,8 +454,20 @@ export default function EcommerceZone() {
                 onChange={(event) => setMotionPrompt(event.target.value)}
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 variant="borderless"
-                placeholder="请描述你想生成的画面和动作"
+                placeholder="请描述你想生成的动作、镜头或画面节奏"
                 className="ecommerce-zone__textarea"
+              />
+            </div>
+
+            <div className="ecommerce-zone__field-group">
+              <label className="ecommerce-zone__field-label">份数</label>
+              <InputNumber
+                min={1}
+                max={10}
+                value={batchCount}
+                onChange={(value) => setBatchCount(Number(value) || 1)}
+                controls
+                className="ecommerce-zone__batch-input"
               />
             </div>
 
@@ -507,7 +564,8 @@ export default function EcommerceZone() {
           </div>
 
           <div className="ecommerce-zone__footer-note">
-            内容由AI生成，仅供参考。使用时请严格遵守相关法律规范对内容进行标识，并仅限本平台及关联平台内投放。
+            内容由 AI
+            生成，仅供参考。使用时请严格遵守相关法律规范对内容进行标识，并仅限本平台及关联平台内投放。
           </div>
         </main>
       </div>
@@ -516,7 +574,7 @@ export default function EcommerceZone() {
         visible={selectorVisible}
         onCancel={() => setSelectorVisible(false)}
         onConfirm={(images) => {
-          // 关键逻辑：人物入口只回填 1 张，参考图入口仍可继续扩成多图。
+          // 关键逻辑：人物入口只回填 1 张，避免外层“视频提示词”误拿到多张人物图。
           setSelectedImages(selectorMode === 'character' ? images.slice(0, 1) : images);
           setSelectorVisible(false);
         }}

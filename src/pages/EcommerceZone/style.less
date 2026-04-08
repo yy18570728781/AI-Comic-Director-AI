@@ -131,26 +131,155 @@
     margin-top: 10px;
   }
 
-  &__field-label {
-    display: block;
+  &__field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 6px;
+  }
+
+  &__field-label {
     font-size: 13px;
     font-weight: 600;
     color: #b9b0c9;
   }
 
+  &__magic-button {
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid rgba(164, 154, 184, 0.22);
+    border-radius: 999px;
+    font-size: 12px;
+    color: #f3ecff;
+    background: linear-gradient(90deg, rgba(119, 8, 245, 0.92), rgba(213, 50, 242, 0.92));
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+
+  &__platform-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__platform-tag {
+    margin-inline-end: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: #cfc5e3;
+    background: @soft-bg;
+    cursor: pointer;
+
+    &.is-active {
+      color: @text-primary;
+      background: linear-gradient(90deg, rgba(119, 8, 245, 0.28), rgba(213, 50, 242, 0.24));
+    }
+  }
+
   &__textarea {
-    padding: 0 !important;
-    color: #ddd5ec !important;
-    background: transparent !important;
+    padding: 10px 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 14px !important;
+    color: #eee8fb !important;
+    background: rgba(255, 255, 255, 0.04) !important;
 
     textarea {
-      color: #ddd5ec !important;
+      color: #f4efff !important;
       background: transparent !important;
 
       &::placeholder {
-        color: #6f6682 !important;
+        color: rgba(244, 239, 255, 0.68) !important;
+        -webkit-text-fill-color: rgba(244, 239, 255, 0.68) !important;
       }
+
+      &::-webkit-input-placeholder {
+        color: rgba(244, 239, 255, 0.68) !important;
+        -webkit-text-fill-color: rgba(244, 239, 255, 0.68) !important;
+      }
+
+      &::-moz-placeholder {
+        color: rgba(244, 239, 255, 0.68) !important;
+        opacity: 1;
+      }
+    }
+  }
+
+  /**
+   * 关键样式：
+   * antd 的 TextArea 最终会把 class 直接挂到 textarea.ant-input 上，
+   * 所以这里补一层更精确的占位符选择器，确保深色主题下占位字能显示成浅白色。
+   */
+  textarea&__textarea::placeholder,
+  textarea.ecommerce-zone__textarea::placeholder,
+  .ecommerce-zone__textarea.ant-input::placeholder {
+    color: rgba(244, 239, 255, 0.72) !important;
+    -webkit-text-fill-color: rgba(244, 239, 255, 0.72) !important;
+    opacity: 1 !important;
+  }
+
+  textarea&__textarea::-webkit-input-placeholder,
+  textarea.ecommerce-zone__textarea::-webkit-input-placeholder,
+  .ecommerce-zone__textarea.ant-input::-webkit-input-placeholder {
+    color: rgba(244, 239, 255, 0.72) !important;
+    -webkit-text-fill-color: rgba(244, 239, 255, 0.72) !important;
+  }
+
+  textarea&__textarea::-moz-placeholder,
+  textarea.ecommerce-zone__textarea::-moz-placeholder,
+  .ecommerce-zone__textarea.ant-input::-moz-placeholder {
+    color: rgba(244, 239, 255, 0.72) !important;
+    opacity: 1 !important;
+  }
+
+  &__batch-input {
+    width: 100%;
+
+    &.ant-input-number {
+      width: 100%;
+      height: 46px;
+      padding-inline: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .ant-input-number-input {
+      height: 44px;
+      color: #f4efff;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .ant-input-number-input-wrap {
+      height: 100%;
+    }
+
+    .ant-input-number-handler-wrap {
+      opacity: 1;
+      width: 34px;
+      border-inline-start: none;
+      background: transparent;
+    }
+
+    .ant-input-number-handler {
+      border: none;
+      color: rgba(244, 239, 255, 0.72);
+      background: transparent;
+    }
+
+    .ant-input-number-handler-up {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    &.ant-input-number-focused {
+      border-color: rgba(213, 50, 242, 0.35);
+      box-shadow: 0 0 0 2px rgba(213, 50, 242, 0.08);
     }
   }
 
