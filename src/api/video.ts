@@ -1,6 +1,6 @@
 import { request } from './request';
+import type { AIBizType } from '@/types/ai-task';
 
-// 视频生成模式
 export type VideoMode = 't2v' | 'i2v' | 'flf2v' | 'ref2v';
 
 /**
@@ -9,7 +9,7 @@ export type VideoMode = 't2v' | 'i2v' | 'flf2v' | 'ref2v';
 export function generateVideo(data: {
   prompt: string;
   model?: string;
-  mode: VideoMode; // 必传！
+  mode: VideoMode;
   duration?: number;
   referenceImages?: string[];
   resolution?: string;
@@ -19,18 +19,18 @@ export function generateVideo(data: {
     url: '/api/ai/video/generate',
     method: 'post',
     data,
-    timeout: 120000, // 2分钟超时
+    timeout: 120000,
   });
 }
 
 /**
  * 异步生成视频（使用队列）
- * 立即返回 jobId，任务在后台队列中处理
  */
 export function generateVideoAsync(data: {
   prompt: string;
   model?: string;
-  mode: VideoMode; // 必传！
+  bizType?: AIBizType;
+  mode: VideoMode;
   duration?: number;
   referenceImages?: string[];
   resolution?: string;
@@ -45,12 +45,12 @@ export function generateVideoAsync(data: {
     url: '/api/ai/video/generate-async',
     method: 'post',
     data,
-    timeout: 30000, // 30秒超时（立即返回）
+    timeout: 30000,
   });
 }
 
 /**
- * 批量异步生成视频（使用队列）
+ * 批量异步生成视频
  */
 export function batchGenerateVideosAsync(data: {
   tasks: Array<{
@@ -97,7 +97,7 @@ export function batchGetVideoStatus(
 }
 
 /**
- * 查询通用任务状态（用于独立页面）
+ * 查询通用任务状态
  */
 export function getGeneralTaskStatus(taskId: string, type: 'image' | 'video', model: string) {
   const url = type === 'image' ? '/api/ai/image/status' : '/api/ai/video/status';

@@ -19,6 +19,7 @@ import { useTaskStore } from '@/stores/useTaskStore';
 import { generateImageAsync } from '@/api/ai';
 import { generateVideoAsync } from '@/api/video';
 import { onTaskComplete, onTaskFailed } from '@/components/GlobalTaskPoller';
+import { resolveAITaskQueueName, type AIBizType } from '@/types/ai-task';
 
 // ==================== 类型定义 ====================
 
@@ -37,6 +38,7 @@ export interface GeneratedVideo {
 export interface ImageParams {
   prompt: string;
   model?: string;
+  bizType?: AIBizType;
   quality?: string;
   aspectRatio?: string;
   referenceImages?: string[];
@@ -50,6 +52,7 @@ export interface ImageParams {
 export interface VideoParams {
   prompt?: string;
   model?: string;
+  bizType?: AIBizType;
   mode?: 't2v' | 'i2v' | 'flf2v' | 'ref2v';
   duration?: number;
   resolution?: string;
@@ -132,11 +135,13 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
   const generateImage = useCallback(
     async (params: ImageParams): Promise<string | null> => {
       const { shotId, scriptId, saveToLibrary, libraryName, libraryTags, ...rest } = params;
+      const queueName = resolveAITaskQueueName('image', rest.bizType);
 
       try {
         const res = await generateImageAsync({
           prompt: rest.prompt,
           model: rest.model || 'seedream',
+          bizType: rest.bizType,
           quality: rest.quality || 'hd',
           aspectRatio: rest.aspectRatio || '16:9',
           referenceImages: rest.referenceImages,
@@ -146,7 +151,7 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
         });
 
         if (res.success && res.data?.jobId) {
-          addTask({ jobId: res.data.jobId, type: 'image', shotId });
+          addTask({ jobId: res.data.jobId, type: 'image', shotId, queueName });
           if (showMessage) message.info('图片任务已提交');
           return res.data.jobId;
         }
@@ -183,6 +188,7 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
       const requestData: any = {
         prompt: rest.prompt || '',
         model: rest.model || 'doubao-seedance-1-0-lite-i2v-250428',
+        bizType: rest.bizType,
         mode,
         duration: rest.duration || 5,
         resolution: rest.resolution || '720p',
@@ -204,10 +210,17 @@ export function useAIGeneration(options: UseAIGenerationOptions = {}) {
       }
 
       try {
+        const queueName = resolveAITaskQueueName('video', rest.bizType);
         const res = await generateVideoAsync(requestData);
 
         if (res.success && res.data?.jobId) {
-          addTask({ jobId: res.data.jobId, type: 'video', shotId, model: requestData.model });
+          addTask({
+            jobId: res.data.jobId,
+            type: 'video',
+            shotId,
+            model: requestData.model,
+            queueName,
+          });
           if (showMessage) message.info('视频任务已提交');
           return res.data.jobId;
         }

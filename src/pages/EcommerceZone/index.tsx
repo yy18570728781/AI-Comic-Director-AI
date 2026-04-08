@@ -209,6 +209,7 @@ export default function EcommerceZone() {
         await generateVideo({
           prompt: finalPrompt,
           model: videoModel,
+          bizType: 'ecommerce',
           mode: selectedMode as 't2v' | 'i2v' | 'flf2v' | 'ref2v',
           referenceImages: selectedImages,
           duration,

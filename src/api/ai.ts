@@ -1,4 +1,5 @@
 import { request } from './request';
+import type { AIBizType, AITaskQueueName } from '@/types/ai-task';
 
 // AI 创作相关接口
 
@@ -328,6 +329,7 @@ export function getModels() {
 export function generateImageAsync(data: {
   prompt: string;
   model?: string;
+  bizType?: AIBizType;
   quality?: string;
   aspectRatio?: string;
   style?: string;
@@ -438,7 +440,7 @@ export interface UnifiedTaskStatusItem {
   progress?: number;
   failedReason?: string;
   videoId?: number;
-  taskTable?: 'image_tasks' | 'shot_videos';
+  taskTable?: 'image_tasks' | 'shot_videos' | 'ecommerce_image_tasks' | 'ecommerce_video_tasks';
   taskDetail?: {
     id: number;
     taskId?: string;
@@ -473,6 +475,7 @@ export function batchGetAllTaskStatus(data: {
     jobId: string | number;
     type: 'image' | 'video';
     videoId?: number;
+    queueName?: AITaskQueueName;
   }>;
 }) {
   return request({

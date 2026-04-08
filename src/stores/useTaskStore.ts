@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { AITaskQueueName } from '@/types/ai-task';
 
 /**
  * 统一任务类型
@@ -10,6 +11,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export interface Task {
   jobId: string | number; // Bull 队列 job ID（统一标识）
   type: 'image' | 'video';
+  queueName?: AITaskQueueName;
   shotId?: number; // 关联的分镜ID（可选）
   characterId?: number; // 关联的角色ID（可选）
   model?: string; // 使用的模型

@@ -80,6 +80,7 @@ export function GlobalTaskPoller() {
           jobId: t.jobId,
           type: t.type,
           videoId: t.videoId,
+          queueName: t.queueName,
         })),
       });
 
