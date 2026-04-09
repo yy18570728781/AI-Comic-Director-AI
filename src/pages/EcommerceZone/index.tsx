@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Input, InputNumber, Popover, Select, Switch, Tag, message } from 'antd';
 import {
   LinkOutlined,
@@ -9,17 +9,19 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { generateEcommerceVideoPrompt } from '@/api/ai';
-import { useModelStore } from '@/stores/useModelStore';
-import { useUserStore } from '@/stores/useUserStore';
-import { useAIGeneration, GeneratedVideo } from '@/hooks/useAIGeneration';
-import useVideoComposer from '@/hooks/useVideoComposer';
-import ReferenceImageSelector from '@/components/ReferenceImageSelector';
 import GenerationTimeline, {
   GenerationTimelineItem,
   GenerationTimelineItemType,
+  GenerationTimelinePendingItem,
 } from '@/components/GenerationTimeline';
-import { storage } from '@/utils';
+import ReferenceImageSelector from '@/components/ReferenceImageSelector';
+import { GeneratedVideo, useAIGeneration } from '@/hooks/useAIGeneration';
+import useVideoComposer from '@/hooks/useVideoComposer';
 import { isModeAvailable } from '@/pages/ImageToVideo/config';
+import { useModelStore } from '@/stores/useModelStore';
+import { useTaskStore } from '@/stores/useTaskStore';
+import { useUserStore } from '@/stores/useUserStore';
+import { storage } from '@/utils';
 import './style.less';
 
 const { TextArea } = Input;
@@ -53,36 +55,66 @@ interface EcommerceVideoRecord extends GeneratedVideo {
   ratio: string;
 }
 
+interface EcommercePendingRecord {
+  jobId: string | number;
+  createdAt: string;
+  prompt: string;
+  publishPlatform: string;
+  resolution: string;
+  ratio: string;
+  duration: number;
+  referenceImage?: string;
+}
+
 function formatCreatedAtLabel(value?: string) {
   if (!value) return '刚刚';
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '刚刚';
-  return `${date.getFullYear()}年${`${date.getMonth() + 1}`.padStart(2, '0')}月${`${date.getDate()}`.padStart(2, '0')}日 ${`${date.getHours()}`.padStart(2, '0')}:${`${date.getMinutes()}`.padStart(2, '0')}`;
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${year}年${month}月${day}日 ${hour}:${minute}`;
+}
+
+/**
+ * 统一拼接最终视频提示词。
+ * 主提示词和动作描述都属于生成视频的重要输入，所以这里固定在提交前合并。
+ */
+function buildFinalPrompt(prompt: string, motionPrompt: string) {
+  return [prompt.trim(), motionPrompt.trim()].filter(Boolean).join('，');
 }
 
 export default function EcommerceZone() {
   const { videoModel, textModel, setVideoModel, videoModels, loadModels } = useModelStore();
   const { currentUser, refreshPoints } = useUserStore();
+  const { tasks } = useTaskStore();
 
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectorVisible, setSelectorVisible] = useState(false);
-  const [selectorMode, setSelectorMode] = useState<'character' | 'reference'>('reference');
   const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
   const [publishPlatform, setPublishPlatform] = useState('抖音');
   const [motionPrompt, setMotionPrompt] = useState('');
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
-  const [loadingPlaceholders, setLoadingPlaceholders] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<EcommerceVideoRecord[]>(
     () => storage.get<EcommerceVideoRecord[]>('ecommerceZone_generatedVideos', []) ?? []
   );
+  const [pendingVideos, setPendingVideos] = useState<EcommercePendingRecord[]>(
+    () => storage.get<EcommercePendingRecord[]>('ecommerceZone_pendingVideos', []) ?? []
+  );
+  const timelineScrollRef = useRef<HTMLDivElement | null>(null);
+  const timelineBottomRef = useRef<HTMLDivElement | null>(null);
 
   const { generateVideo } = useAIGeneration({
     onVideoComplete: (video) => {
       const currentModel = models.find((item) => item.id === videoModel);
-      // 关键逻辑：历史记录里保留最终提交的完整提示词，避免回显依赖当前表单值。
-      const finalPrompt = [prompt.trim(), motionPrompt.trim()].filter(Boolean).join('；');
+      const finalPrompt = buildFinalPrompt(prompt, motionPrompt);
+
       const nextRecord: EcommerceVideoRecord = {
         ...video,
         createdAt: new Date().toISOString(),
@@ -91,17 +123,20 @@ export default function EcommerceZone() {
         resolution,
         ratio: aspectRatio,
       };
+
       setGeneratedVideos((prev) => [...prev, nextRecord]);
-      setLoadingPlaceholders((prev) => Math.max(0, prev - 1));
       refreshPoints();
     },
-    onError: () => setLoadingPlaceholders((prev) => Math.max(0, prev - 1)),
     showMessage: true,
   });
 
   useEffect(() => {
     storage.set('ecommerceZone_generatedVideos', generatedVideos);
   }, [generatedVideos]);
+
+  useEffect(() => {
+    storage.set('ecommerceZone_pendingVideos', pendingVideos);
+  }, [pendingVideos]);
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -114,6 +149,7 @@ export default function EcommerceZone() {
         setLoading(false);
       }
     };
+
     fetchModels();
   }, [loadModels]);
 
@@ -121,10 +157,28 @@ export default function EcommerceZone() {
     setModels(videoModels);
     const currentModel = videoModels.find((model) => model.id === videoModel) || videoModels[0];
     if (!currentModel) return;
+
     if (!videoModel || currentModel.id !== videoModel) {
       setVideoModel(currentModel.id);
     }
   }, [setVideoModel, videoModel, videoModels]);
+
+  useEffect(() => {
+    /**
+     * 关键逻辑：
+     * 1. 真实轮询仍然复用全局任务系统。
+     * 2. 电商页只把自己的“展示快照”单独存本地。
+     * 3. 当全局任务里已经没有对应的 ecommerce-video 任务时，说明任务已完成或失败，
+     *    这里就把本地的生成中卡片清掉，避免刷新后残留假状态。
+     */
+    const activeJobIds = new Set(
+      tasks
+        .filter((task) => task.type === 'video' && task.queueName === 'ecommerce-video')
+        .map((task) => String(task.jobId))
+    );
+
+    setPendingVideos((prev) => prev.filter((item) => activeJobIds.has(String(item.jobId))));
+  }, [tasks]);
 
   const { fields, derived, actions } = useVideoComposer({
     models,
@@ -172,8 +226,8 @@ export default function EcommerceZone() {
     () => modelOptions.find((item) => item.value === videoModel)?.label || videoModel || '视频模型',
     [modelOptions, videoModel]
   );
+
   const feedVideos = useMemo(() => [...generatedVideos].reverse(), [generatedVideos]);
-  // 关键状态：人物入口只显示一张图，智能生成也只使用这张人物参考图。
   const characterImage = selectedImages[0];
 
   const timelineItems = useMemo<GenerationTimelineItem[]>(
@@ -195,12 +249,44 @@ export default function EcommerceZone() {
     [generatedVideos]
   );
 
+  const pendingTimelineItems = useMemo<GenerationTimelinePendingItem[]>(
+    () =>
+      [...pendingVideos].reverse().map((item) => ({
+        id: item.jobId,
+        requestText: item.prompt,
+        description: '任务已提交，正在生成视频内容，刷新页面后仍会保留这张任务卡片。',
+        statusText: `任务 #${item.jobId} 生成中`,
+        thumbnail: item.referenceImage,
+        metaTags: [
+          { label: item.publishPlatform },
+          { label: item.resolution },
+          { label: item.ratio },
+          { label: `${item.duration}s` },
+        ],
+      })),
+    [pendingVideos]
+  );
+
+  useEffect(() => {
+    /**
+     * 关键逻辑：
+     * 1. 页面刷新恢复任务后，需要自动滚到时间线底部。
+     * 2. 新提交任务或新完成结果进入列表后，也要继续贴着底部显示最新内容。
+     * 3. 这里使用底部锚点而不是手算高度，避免后续卡片高度变化时滚动失准。
+     */
+    const timer = window.setTimeout(() => {
+      timelineBottomRef.current?.scrollIntoView({
+        block: 'end',
+        behavior: 'smooth',
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [pendingTimelineItems.length, timelineItems.length]);
+
   /**
-   * 智能生成视频提示词
-   *
-   * 关键逻辑：
-   * 1. 这里只检查人物参考图，没有图就直接拦截。
-   * 2. 智能生成只传人物图和平台标签给后端，让后端按带货视频逻辑补全提示词。
+   * 智能生成视频提示词。
+   * 这里仍然只校验人物参考图，并把平台信息一起传给后端提示词服务。
    */
   const handleSmartGeneratePrompt = async () => {
     if (!characterImage) {
@@ -236,6 +322,14 @@ export default function EcommerceZone() {
     }
   };
 
+  /**
+   * 提交视频生成任务。
+   *
+   * 关键逻辑：
+   * 1. 提交成功后立刻把 jobId 和展示快照写入本地 pending 列表。
+   * 2. 刷新页面时，这些快照会配合全局 task store 一起恢复成真实任务卡片。
+   * 3. 后端接口和全局轮询都继续复用原来的通用实现，这里只补电商页自己的展示层状态。
+   */
   const handleGenerate = async () => {
     if (!selectedImages.length) return message.warning('请先上传参考图');
     if (!prompt.trim()) return message.warning('请先填写视频提示词');
@@ -245,13 +339,12 @@ export default function EcommerceZone() {
     }
     if (!hasEnoughPoints) return message.warning('积分不足，暂时无法生成');
 
-    // 关键逻辑：生成时统一把主提示词和动作描述合并成最终 prompt。
-    const finalPrompt = [prompt.trim(), motionPrompt.trim()].filter(Boolean).join('；');
+    const finalPrompt = buildFinalPrompt(prompt, motionPrompt);
     setIsSubmitting(true);
+
     try {
-      setLoadingPlaceholders((prev) => prev + batchCount);
       for (let index = 0; index < batchCount; index += 1) {
-        await generateVideo({
+        const jobId = await generateVideo({
           prompt: finalPrompt,
           model: videoModel,
           bizType: 'ecommerce',
@@ -279,6 +372,22 @@ export default function EcommerceZone() {
               }
             : {}),
         });
+
+        if (jobId) {
+          setPendingVideos((prev) => [
+            ...prev,
+            {
+              jobId,
+              createdAt: new Date().toISOString(),
+              prompt: finalPrompt,
+              publishPlatform,
+              resolution,
+              ratio: aspectRatio,
+              duration,
+              referenceImage: selectedImages[0],
+            },
+          ]);
+        }
       }
     } finally {
       window.setTimeout(() => setIsSubmitting(false), 500);
@@ -387,14 +496,10 @@ export default function EcommerceZone() {
                 role="button"
                 tabIndex={0}
                 className={`ecommerce-zone__role-button ${characterImage ? 'has-image' : ''}`}
-                onClick={() => {
-                  setSelectorMode('character');
-                  setSelectorVisible(true);
-                }}
+                onClick={() => setSelectorVisible(true)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    setSelectorMode('character');
                     setSelectorVisible(true);
                   }
                 }}
@@ -522,24 +627,9 @@ export default function EcommerceZone() {
               <div>
                 <div className="ecommerce-zone__hero-title">Hi，欢迎来到AI人物口播生成工具</div>
                 <div className="ecommerce-zone__hero-subtitle">
-                  固定使用电商2.0模型生成带货视频，上传参考图即可开始创作。
+                  上传参考图即可开始生成电商带货视频。
                 </div>
               </div>
-            </div>
-
-            <div className="ecommerce-zone__toolbar-actions">
-              <button type="button" className="ecommerce-zone__toolbar-button">
-                <SettingOutlined />
-                <span>设置</span>
-              </button>
-              <button type="button" className="ecommerce-zone__toolbar-button">
-                <LinkOutlined />
-                <span>管理视频原料</span>
-              </button>
-              <button type="button" className="ecommerce-zone__toolbar-button">
-                <SearchOutlined />
-                <span>任务搜索</span>
-              </button>
             </div>
           </div>
 
@@ -552,17 +642,18 @@ export default function EcommerceZone() {
           </div>
 
           <div className="ecommerce-zone__feed">
-            <div className="ecommerce-zone__timeline-shell">
+            <div className="ecommerce-zone__timeline-shell" ref={timelineScrollRef}>
               <GenerationTimeline
                 items={timelineItems}
-                loadingPlaceholders={loadingPlaceholders}
+                pendingItems={pendingTimelineItems}
                 bottomSafeSpace={24}
                 credits={totalCredits}
-                emptyDescription="右侧先复用统一结果流，后续再按电商专区做细节增强"
+                emptyDescription="右侧会展示已完成视频和生成中的任务卡片"
                 generatingText="任务已提交，正在生成视频内容..."
                 downloadText="下载视频"
                 onDownload={handleDownload}
               />
+              <div ref={timelineBottomRef} />
             </div>
           </div>
 
@@ -577,7 +668,11 @@ export default function EcommerceZone() {
         visible={selectorVisible}
         onCancel={() => setSelectorVisible(false)}
         onConfirm={(images) => {
-          // 关键逻辑：人物入口只回填 1 张，普通参考图入口继续跟随模型能力支持的图片数量。
+          /**
+           * 关键逻辑：
+           * 电商视频当前只保留 1 张人物参考图，
+           * 智能生成提示词和视频提交都会直接复用这张图。
+           */
           setSelectedImages(images.slice(0, 1));
           setSelectorVisible(false);
         }}
