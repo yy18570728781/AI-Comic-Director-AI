@@ -129,7 +129,7 @@ export default function Home() {
           )}
         </Space>
 
-        {theme === 'theme1' && (
+        {/* {theme === 'theme1' && (
           <div className="home-showcase">
             <div className="home-showcase-track">
               {[...showcaseImages, ...showcaseImages].map((src, i) => (
@@ -139,7 +139,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </section>
 
       {/* 功能卡片 */}
