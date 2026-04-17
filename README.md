@@ -27,24 +27,21 @@
 
 ---
 
-## 🚀 30 秒快速体验
+## 🚀 快速开始
 
-### 方式一：Docker Compose 一键部署（推荐）
+### 💻 在线体验（无需安装）
 
-```bash
-# 1. 下载配置文件
-curl -O https://raw.githubusercontent.com/yy18570728781/AI-Comic-Director/main/docker-compose.yml
+立即访问在线版，无需下载，随时开始使用：
 
-# 2. 一键启动（自动拉取镜像）
-docker-compose up -d
+🌐 **[立即体验 AI 漫剧工作台](http://paopaomj.yjaippt.top/)**
 
-# 3. 访问应用
-# http://localhost:3005
-```
+> 💡 推荐直接使用在线版，始终保持最新功能，无需维护
 
-> 💡 首次启动会自动拉取镜像，请耐心等待
+---
 
-### 方式二：克隆仓库部署
+### 🐳 本地部署（推荐开发者）
+
+#### 首次部署
 
 ```bash
 # 1. 克隆项目
@@ -52,16 +49,34 @@ git clone https://github.com/yy18570728781/AI-Comic-Director.git
 cd AI-Comic-Director
 
 # 2. 启动服务
+# 首次启动时会自动拉取所需官方镜像
 docker-compose up -d
 
 # 3. 访问应用
-# http://localhost:3005
+# 浏览器打开 http://localhost:3005
 ```
 
-### 方式三：Docker Run（快速测试）
+**访问地址：** [http://localhost:3005](http://localhost:3005)
+
+#### 常用命令
 
 ```bash
-docker run -d -p 3005:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+
+# 重启服务
+docker-compose restart
+```
+
+#### 更新到最新版本
+
+```bash
+# 拉取最新镜像并重建容器
+docker-compose pull
+docker-compose up -d --force-recreate
 ```
 
 ---
@@ -186,97 +201,29 @@ AI 图像生成，支持文生图、图生图、图像融合
 - ✅ 完整功能体验
 - ✅ 无需科学上网
 
-## 🔧 部署指南
-
-### 系统要求
-
-- Docker 20.10+
-- 2GB 可用内存
-- 1GB 可用磁盘空间
-
-### 快速部署
-
-#### 方式 1：Docker Run（最简单）
-
-适合快速体验，一条命令启动：
+## 🔧 常用命令
 
 ```bash
-docker pull paopaoyuy/ai-comic-web:latest
-docker run -d -p 3005:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
-```
-
-访问：`http://localhost:3005`
-
-#### 方式 2：Docker Compose（推荐）
-
-适合生产环境，支持自动重启和健康检查：
-
-```bash
-# 下载配置文件
-curl -O https://raw.githubusercontent.com/yourname/ai-comic-studio/main/docker/docker-compose.yml
-
-# 启动服务
-docker-compose up -d
+# 查看运行状态
+docker-compose ps
 
 # 查看日志
 docker-compose logs -f
 
 # 停止服务
 docker-compose down
-```
 
-访问：`http://localhost:3005`
-
-#### 方式 3：从源码构建（开发者）
-
-适合需要自定义或二次开发的场景：
-
-```bash
-# 1. 克隆仓库
-git clone https://github.com/yourname/ai-comic-studio.git
-cd ai-comic-studio/web
-
-# 2. 构建镜像
-docker build -t ai-comic-web:local .
-
-# 3. 运行容器
-docker run -d -p 3005:80 --name ai-comic-web ai-comic-web:local
-```
-
-访问：`http://localhost:3005`
-
-### 常用命令
-
-```bash
-# 查看运行状态
-docker ps
-
-# 查看日志
-docker logs -f ai-comic-web
-
-# 停止容器
-docker stop ai-comic-web
-
-# 启动容器
-docker start ai-comic-web
-
-# 删除容器
-docker rm -f ai-comic-web
-
-# 更新到最新版本
-docker pull paopaoyuy/ai-comic-web:latest
-docker stop ai-comic-web
-docker rm ai-comic-web
-docker run -d -p 3005:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
+# 重启服务
+docker-compose restart
 ```
 
 ### 端口配置
 
-默认端口是 `3005`，如果需要修改，可以更改映射端口：
+默认端口是 `3005`，如果需要修改，编辑 `docker-compose.yml`：
 
-```bash
-# 使用 8080 端口
-docker run -d -p 8080:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
+```yaml
+ports:
+  - "8080:80"  # 改为 8080 端口
 ```
 
 ### 故障排查
@@ -284,37 +231,33 @@ docker run -d -p 8080:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
 #### 问题 1：端口被占用
 
 ```bash
-# 查看端口占用
-netstat -ano | findstr :3005  # Windows
-lsof -i :3005                 # Linux/Mac
+# Windows 查看端口占用
+netstat -ano | findstr :3005
 
-# 使用其他端口
-docker run -d -p 8080:80 --name ai-comic-web paopaoyuy/ai-comic-web:latest
+# Linux/Mac 查看端口占用
+lsof -i :3005
+
+# 修改为其他端口（编辑 docker-compose.yml）
 ```
 
 #### 问题 2：无法访问
 
 ```bash
 # 检查容器是否运行
-docker ps
+docker-compose ps
 
 # 查看容器日志
-docker logs ai-comic-web
+docker-compose logs
 
-# 检查防火墙设置
-# Windows: 控制面板 -> 防火墙 -> 允许应用通过防火墙
-# Linux: sudo ufw allow 3005
+# 重启容器
+docker-compose restart
 ```
 
 #### 问题 3：API 请求失败
 
-前端会自动连接到我们的后端服务 `https://mj.server.yjaippt.top`，请确保：
-- 网络连接正常
-- 没有代理或防火墙拦截
-
-### 访问应用
-
-部署成功后，打开浏览器访问：`http://localhost:3005`
+前端会自动连接到后端服务，请确保：
+- ✅ 网络连接正常
+- ✅ 没有代理或防火墙拦截
 
 ---
 
@@ -364,7 +307,7 @@ docker logs ai-comic-web
 
 - 📧 **邮箱** - yy18570728781@163.com
 - 💬 **微信** - yy18570728781
-- 🔗 **官网** - http://paopaomj.yjaippt.top
+- 🌐 **在线体验** - [http://paopaomj.yjaippt.top](http://paopaomj.yjaippt.top)
 
 ---
 
@@ -408,11 +351,11 @@ docker logs ai-comic-web
 
 ## 🔗 相关链接
 
-- 🏠 [项目主页](https://github.com/yy18570728781/AI-Comic-Director)
+- � [在线体验](http://paopaomj.yjaippt.top/) - 无需安装，立即使用
+- �🏠 [项目主页](https://github.com/yy18570728781/AI-Comic-Director)
 - 📦 [Docker Hub](https://hub.docker.com/r/paopaoyuy/ai-comic-web)
 - 📖 [使用文档](https://github.com/yy18570728781/AI-Comic-Director#readme)
 - 💬 [问题反馈](https://github.com/yy18570728781/AI-Comic-Director/issues)
-- 🌐 [官方网站](http://paopaomj.yjaippt.top)
 
 ---
 
@@ -472,7 +415,7 @@ docker logs ai-comic-web
 
 **⭐ 如果这个项目对你有帮助，请给个 Star！⭐**
 
-[立即体验](http://localhost:3005) | [查看文档](https://github.com/yy18570728781/AI-Comic-Director#readme) | [联系我们](mailto:yy18570728781@163.com)
+[🌐 在线体验](http://paopaomj.yjaippt.top/) | [📖 查看文档](https://github.com/yy18570728781/AI-Comic-Director#readme) | [💬 问题反馈](https://github.com/yy18570728781/AI-Comic-Director/issues) | [📧 联系我们](mailto:yy18570728781@163.com)
 
 </div>
 
