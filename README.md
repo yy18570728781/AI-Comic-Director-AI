@@ -29,8 +29,6 @@
 - 💬 微信：wslyy3399
 - 💬 交流群：见下方二维码
 
-我们对此次事件给您带来的不便深表歉意，感谢您的理解和支持！
-
 ---
 
 **最新进展：** 请关注 [GitHub Issues](https://github.com/yy18570728781/AI-Comic-Director/issues) 获取实时更新
