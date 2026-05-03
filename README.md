@@ -1,5 +1,18 @@
 # AI 漫剧工作台 | AI 短剧生成 | 小说转视频 | 开源漫剧制作工具
+<div align="center">
 
+[![简体中文](https://img.shields.io/badge/简体中文-Click-blue?style=flat-square)](./README.md)
+[![English](https://img.shields.io/badge/English-Click-green?style=flat-square)](./README_EN.md)
+
+</div>
+
+<div align="center">
+
+[🇨🇳 Gitee](https://gitee.com/yu-you/AI-Comic-Director) | [🌍 GitHub](https://github.com/yy18570728781/AI-Comic-Director)
+
+</div>
+
+---
 > 🎬 **从小说到短剧，一站式 AI 漫剧创作平台** | 支持文本生成、分镜设计、图像生成、视频制作全流程
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/paopaoyuy/ai-comic-web)](https://hub.docker.com/r/paopaoyuy/ai-comic-web)
